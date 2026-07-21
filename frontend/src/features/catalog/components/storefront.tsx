@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { ArrowRight, BookOpen, Check, ChevronRight, Eye, Heart, Library, LogIn, Menu, Search, ShoppingBag, Sparkles, Star, X } from "lucide-react";
+import { ArrowRight, BookOpen, Check, ChevronRight, Eye, Heart, Info, Library, LogIn, Menu, Search, ShoppingBag, Sparkles, Star, X } from "lucide-react";
 import { bookFromApi, books as fallbackBooks, money, type ApiBook, type Book } from "@/features/catalog/lib/books";
 import { api, getCurrentUser, type SessionUser } from "@/shared/lib/api";
 import { BookCover } from "./book-cover";
@@ -14,10 +14,14 @@ export function Storefront() {
   const [cart, setCart] = useState<Book[]>([]);
   const [cartOpen, setCartOpen] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [selectedBook, setSelectedBook] = useState<Book | null>(null);
   const [favorites, setFavorites] = useState<string[]>([]);
   const [checkoutState, setCheckoutState] = useState<"idle" | "loading" | "error">("idle");
   const [user, setUser] = useState<SessionUser | null>(null);
   const checkoutRequestId = useRef<string | null>(null);
+  const modalRef = useRef<HTMLElement>(null);
+  const modalCloseRef = useRef<HTMLButtonElement>(null);
+  const previousFocusRef = useRef<HTMLElement | null>(null);
 
   useEffect(() => {
     void getCurrentUser().then((profile) => {
@@ -25,9 +29,36 @@ export function Storefront() {
       if (profile) void api<Array<{ bookId: string }>>("/favorites", {}, true).then((items) => setFavorites(items.map((item) => item.bookId))).catch(() => undefined);
     });
     void api<ApiBook[]>("/books").then((items) => {
-      if (items.length) setCatalog(items.map(bookFromApi));
+      if (!items.length) return;
+      const remoteBooks = items.map(bookFromApi);
+      const demoBook = remoteBooks.find((book) => book.id === "dac-nhan-tam") ?? fallbackBooks.find((book) => book.id === "dac-nhan-tam");
+      setCatalog(demoBook ? [demoBook, ...remoteBooks.filter((book) => book.id !== demoBook.id)] : remoteBooks);
     }).catch(() => undefined);
   }, []);
+
+  useEffect(() => {
+    if (!selectedBook) return;
+    previousFocusRef.current = document.activeElement as HTMLElement | null;
+    const previousOverflow = document.body.style.overflow;
+    const handleModalKeyboard = (event: KeyboardEvent) => {
+      if (event.key === "Escape") { setSelectedBook(null); return; }
+      if (event.key !== "Tab" || !modalRef.current) return;
+      const focusable = Array.from(modalRef.current.querySelectorAll<HTMLElement>('a[href], button:not([disabled]), [tabindex]:not([tabindex="-1"])'));
+      if (!focusable.length) return;
+      const first = focusable[0];
+      const last = focusable.at(-1)!;
+      if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last.focus(); }
+      else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus(); }
+    };
+    document.body.style.overflow = "hidden";
+    window.addEventListener("keydown", handleModalKeyboard);
+    window.requestAnimationFrame(() => modalCloseRef.current?.focus());
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      window.removeEventListener("keydown", handleModalKeyboard);
+      previousFocusRef.current?.focus();
+    };
+  }, [selectedBook]);
 
   const filtered = useMemo(() => catalog.filter((book) => {
     const inCategory = category === "Tất cả" || book.category === category;
@@ -105,8 +136,15 @@ export function Storefront() {
           <div className="section-head"><div className="section-intro"><span className="eyebrow">Được yêu thích</span><h2>Sách dành cho bạn</h2><p>Những tựa sách được độc giả CapstoneBook lựa chọn nhiều nhất tuần này.</p></div><span className="result-count">{filtered.length} tựa sách</span></div>
           {filtered.length ? <div className="book-grid">{filtered.map((book) => (
             <article className="book-card" key={book.id}>
-              <div className="cover-wrap"><BookCover book={book}/><button className={`favorite ${favorites.includes(book.id) ? "active" : ""}`} onClick={() => void toggleFavorite(book.id)} aria-label={favorites.includes(book.id) ? "Bỏ khỏi yêu thích" : "Thêm vào yêu thích"}><Heart size={18} fill={favorites.includes(book.id) ? "currentColor" : "none"}/></button>{book.premium && <span className="premium-badge"><Sparkles size={12}/> Premium</span>}</div>
-              <div className="book-info"><div className="book-meta"><span>{book.format}</span><span><Star size={13} fill="currentColor"/> {book.rating || "Mới"}</span></div><h3><Link href={`/books/${encodeURIComponent(book.id)}`}>{book.title}</Link></h3><p>{book.author}</p>{book.readingEnabled && <Link className="sample-read-link" href={`/books/${encodeURIComponent(book.id)}`}><Eye size={16}/> Có bản đọc online</Link>}<div className="book-buy"><div><strong>{money(book.price)}</strong>{book.oldPrice && <del>{money(book.oldPrice)}</del>}</div><button onClick={() => addToCart(book)} aria-label={`Thêm ${book.title} vào giỏ`}><ShoppingBag size={18}/></button></div></div>
+              <div className="cover-wrap">
+                <button className="book-preview-trigger" onClick={() => setSelectedBook(book)} aria-label={`Xem nhanh chi tiết ${book.title}`}>
+                  <BookCover book={book}/><span><Info size={16}/> Xem chi tiết</span>
+                </button>
+                <button className={`favorite ${favorites.includes(book.id) ? "active" : ""}`} onClick={() => void toggleFavorite(book.id)} aria-label={favorites.includes(book.id) ? "Bỏ khỏi yêu thích" : "Thêm vào yêu thích"}><Heart size={18} fill={favorites.includes(book.id) ? "currentColor" : "none"}/></button>
+                {book.premium && <span className="premium-badge"><Sparkles size={12}/> Premium</span>}
+                {book.id === "dac-nhan-tam" && <span className="demo-badge"><BookOpen size={12}/> Sách demo</span>}
+              </div>
+              <div className="book-info"><div className="book-meta"><span>{book.format}</span><span><Star size={13} fill="currentColor"/> {book.rating || "Mới"}</span></div><h3><button className="book-title-button" onClick={() => setSelectedBook(book)}>{book.title}</button></h3><p>{book.author}</p>{book.readingEnabled && <Link className="sample-read-link" href={`/read/${encodeURIComponent(book.id)}`}><Eye size={16}/> Đọc online</Link>}<div className="book-buy"><div><strong>{money(book.price)}</strong>{book.oldPrice && <del>{money(book.oldPrice)}</del>}</div><button onClick={() => addToCart(book)} aria-label={`Thêm ${book.title} vào giỏ`}><ShoppingBag size={18}/></button></div></div>
             </article>
           ))}</div> : <div className="empty-state"><Search size={28}/><h3>Chưa tìm thấy cuốn sách phù hợp</h3><p>Thử từ khóa khác hoặc xem lại toàn bộ danh mục.</p><button className="button button-secondary" onClick={() => {setQuery("");setCategory("Tất cả")}}>Xem tất cả sách</button></div>}
         </section>
@@ -117,6 +155,31 @@ export function Storefront() {
       </main>
 
       <footer className="site-footer"><Link href="/" className="brand footer-brand"><span className="brand-mark"><BookOpen size={19}/></span><span>Capstone<span>Book</span></span></Link><p>Đọc sâu hơn. Sống rộng hơn.</p><div><a href="#books">Sách</a><a href="#premium">Premium</a><Link href="/system">Kiến trúc hệ thống</Link>{user?.role === "ADMIN" && <Link href="/admin">Quản trị</Link>}</div><small>© 2026 CapstoneBook. Demo học thuật.</small></footer>
+
+      {selectedBook && <div className="book-modal-backdrop" onMouseDown={(event) => { if (event.target === event.currentTarget) setSelectedBook(null); }}>
+        <section ref={modalRef} className="book-modal" role="dialog" aria-modal="true" aria-labelledby="book-modal-title" aria-describedby="book-modal-description">
+          <button ref={modalCloseRef} className="book-modal-close" onClick={() => setSelectedBook(null)} aria-label="Đóng chi tiết sách"><X size={22}/></button>
+          <div className="book-modal-visual">
+            <div className="book-modal-glow" aria-hidden="true"/>
+            <BookCover book={selectedBook} large/>
+            {selectedBook.readingEnabled && <span className="book-modal-online"><span/> Sẵn sàng đọc online</span>}
+          </div>
+          <div className="book-modal-content">
+            <div className="book-modal-badges"><span>{selectedBook.category}</span><span>{selectedBook.format}</span>{selectedBook.premium && <span className="is-premium"><Sparkles size={12}/> Premium</span>}</div>
+            <h2 id="book-modal-title">{selectedBook.title}</h2>
+            <p className="book-modal-author">Tác giả <strong>{selectedBook.author}</strong></p>
+            <div className="book-modal-rating"><Star size={17} fill="currentColor"/><strong>{selectedBook.rating || "Mới"}</strong><span>Đánh giá từ cộng đồng CapstoneBook</span></div>
+            <p id="book-modal-description" className="book-modal-description">{selectedBook.description || "Một tựa sách được tuyển chọn cho thư viện CapstoneBook, với thông tin xuất bản minh bạch và trải nghiệm mua hoặc đọc online liền mạch."}</p>
+            <dl className="book-modal-facts"><div><dt>Nhà xuất bản</dt><dd>{selectedBook.publisher || "Đang cập nhật"}</dd></div><div><dt>Quyền truy cập</dt><dd>{selectedBook.accessType === "FREE" ? "Miễn phí" : selectedBook.accessType === "PREMIUM" ? "Premium" : "Mua một lần"}</dd></div><div><dt>Đọc online</dt><dd>{selectedBook.readingEnabled ? "Có bản PDF bảo vệ" : "Chưa hỗ trợ"}</dd></div></dl>
+            <div className="book-modal-purchase"><div><span>Giá Ebook</span><strong>{money(selectedBook.price)}</strong>{selectedBook.oldPrice && <del>{money(selectedBook.oldPrice)}</del>}</div><button className="button button-secondary" onClick={() => { addToCart(selectedBook); setSelectedBook(null); }}><ShoppingBag size={18}/> Thêm vào giỏ</button></div>
+            <div className="book-modal-actions">
+              {selectedBook.readingEnabled && <Link className="button button-primary" href={`/read/${encodeURIComponent(selectedBook.id)}`} onClick={() => setSelectedBook(null)}><Eye size={18}/> Đọc online ngay</Link>}
+              <Link className="button button-secondary" href={`/books/${encodeURIComponent(selectedBook.id)}`} onClick={() => setSelectedBook(null)}>Trang chi tiết <ArrowRight size={18}/></Link>
+            </div>
+            {selectedBook.id === "dac-nhan-tam" && <p className="book-modal-note"><Check size={16}/> Đây là cuốn demo đầy đủ cho luồng đăng nhập, cấp quyền và trình đọc PDF.</p>}
+          </div>
+        </section>
+      </div>}
 
       <div className={`drawer-backdrop ${cartOpen ? "show" : ""}`} onClick={() => setCartOpen(false)}></div>
       <aside className={`cart-drawer ${cartOpen ? "open" : ""}`} aria-hidden={!cartOpen}>
