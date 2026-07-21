@@ -1,6 +1,7 @@
 import {
   Body,
   Controller,
+  Get,
   HttpCode,
   Param,
   Post,
@@ -42,5 +43,11 @@ export class PaymentsController {
     @CurrentUser() user: AuthUser,
   ) {
     return this.payments.demoConfirm(Number(orderCode), user);
+  }
+
+  @Get(':orderCode')
+  @UseGuards(JwtAuthGuard)
+  status(@Param('orderCode') orderCode: string, @CurrentUser() user: AuthUser) {
+    return this.payments.status(Number(orderCode), user);
   }
 }

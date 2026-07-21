@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { MongooseModule } from '@nestjs/mongoose';
 import { AuthModule } from '../auth/auth.module';
 import { BooksModule } from '../books/books.module';
+import { StorageModule } from '../storage/storage.module';
 import { LibraryController } from './library.controller';
 import { LibraryService } from './library.service';
 import {
@@ -17,6 +18,7 @@ import {
   imports: [
     AuthModule,
     BooksModule,
+    StorageModule,
     MongooseModule.forFeature([
       { name: ReadingRight.name, schema: ReadingRightSchema },
       { name: ReadingProgress.name, schema: ReadingProgressSchema },

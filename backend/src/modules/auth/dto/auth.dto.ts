@@ -1,4 +1,4 @@
-import { IsEmail, IsString, MaxLength, MinLength } from 'class-validator';
+import { IsEmail, IsOptional, IsString, Matches, MaxLength, MinLength } from 'class-validator';
 
 export class RegisterDto {
   @IsString()
@@ -13,6 +13,44 @@ export class RegisterDto {
   @MinLength(8)
   @MaxLength(72)
   password!: string;
+
+  @IsString()
+  confirmPassword!: string;
+}
+
+export class ForgotPasswordDto {
+  @IsEmail()
+  email!: string;
+}
+
+export class VerifyOtpDto extends ForgotPasswordDto {
+  @Matches(/^\d{6}$/)
+  otp!: string;
+}
+
+export class ResetPasswordDto {
+  @IsString()
+  resetToken!: string;
+
+  @IsString()
+  @MinLength(8)
+  @MaxLength(72)
+  password!: string;
+
+  @IsString()
+  confirmPassword!: string;
+}
+
+export class GoogleCallbackDto {
+  @IsString()
+  code!: string;
+
+  @IsString()
+  state!: string;
+
+  @IsOptional()
+  @IsString()
+  error?: string;
 }
 
 export class LoginDto {

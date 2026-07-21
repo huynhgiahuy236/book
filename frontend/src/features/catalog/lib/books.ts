@@ -5,6 +5,16 @@ export type Book = {
   category: string; format: "Ebook" | "Sách giấy"; premium?: boolean;
   cover: string; coverUrl?: string; accent: string; rating: number;
   isbn13?: string | null; publisher?: string; sourceUrl?: string;
+  description?: string; accessType?: "FREE" | "PREMIUM" | "PURCHASE";
+  readingEnabled?: boolean; stock?: number; ebookPrice?: number; physicalPrice?: number;
+};
+
+export type ApiBook = {
+  id: string; title: string; authors: string[]; price: number; categories: string[];
+  format: "EBOOK" | "PHYSICAL"; premium?: boolean; coverUrl?: string;
+  averageRating?: number | null; isbn13?: string | null; publisher?: string; sourceUrl?: string;
+  description?: string; accessType?: "FREE" | "PREMIUM" | "PURCHASE"; readingEnabled?: boolean;
+  stock?: number; ebookPrice?: number; physicalPrice?: number;
 };
 
 const accents = ["coral", "gold", "blue", "green", "ink", "purple", "red", "forest"];
@@ -19,6 +29,17 @@ export const books: Book[] = importedBooks.slice(0, 24).map((book, index) => ({
   rating: book.averageRating ? Number(book.averageRating.toFixed(1)) : 4.6 + (index % 4) / 10,
   isbn13: book.isbn13, publisher: book.publisher, sourceUrl: book.sourceUrl,
 }));
+
+export const bookFromApi = (book: ApiBook, index = 0): Book => ({
+  id: book.id, title: book.title, author: book.authors[0] ?? "Chưa rõ tác giả",
+  price: book.ebookPrice ?? book.price, category: book.categories[0] ?? "Khác",
+  format: book.format === "EBOOK" ? "Ebook" : "Sách giấy", premium: book.premium,
+  cover: coverTitle(book.title), coverUrl: book.coverUrl, accent: accents[index % accents.length],
+  rating: book.averageRating ? Number(book.averageRating.toFixed(1)) : 0,
+  isbn13: book.isbn13, publisher: book.publisher, sourceUrl: book.sourceUrl,
+  description: book.description, accessType: book.accessType, readingEnabled: book.readingEnabled,
+  stock: book.stock, ebookPrice: book.ebookPrice, physicalPrice: book.physicalPrice,
+});
 
 export const money = (value: number) =>
   new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND" }).format(value);

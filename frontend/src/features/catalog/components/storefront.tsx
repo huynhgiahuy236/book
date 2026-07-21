@@ -1,13 +1,14 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { ArrowRight, BookOpen, Check, ChevronRight, Eye, Heart, Library, LogIn, Menu, Search, ShoppingBag, Sparkles, Star, X } from "lucide-react";
-import { books, money, type Book } from "@/features/catalog/lib/books";
+import { bookFromApi, books as fallbackBooks, money, type ApiBook, type Book } from "@/features/catalog/lib/books";
 import { api, getCurrentUser, type SessionUser } from "@/shared/lib/api";
 import { BookCover } from "./book-cover";
 
 export function Storefront() {
+  const [catalog, setCatalog] = useState<Book[]>(fallbackBooks);
   const [category, setCategory] = useState("Tất cả");
   const [query, setQuery] = useState("");
   const [cart, setCart] = useState<Book[]>([]);
@@ -16,18 +17,35 @@ export function Storefront() {
   const [favorites, setFavorites] = useState<string[]>([]);
   const [checkoutState, setCheckoutState] = useState<"idle" | "loading" | "error">("idle");
   const [user, setUser] = useState<SessionUser | null>(null);
+  const checkoutRequestId = useRef<string | null>(null);
 
-  useEffect(() => { void getCurrentUser().then(setUser); }, []);
+  useEffect(() => {
+    void getCurrentUser().then((profile) => {
+      setUser(profile);
+      if (profile) void api<Array<{ bookId: string }>>("/favorites", {}, true).then((items) => setFavorites(items.map((item) => item.bookId))).catch(() => undefined);
+    });
+    void api<ApiBook[]>("/books").then((items) => {
+      if (items.length) setCatalog(items.map(bookFromApi));
+    }).catch(() => undefined);
+  }, []);
 
-  const filtered = useMemo(() => books.filter((book) => {
+  const filtered = useMemo(() => catalog.filter((book) => {
     const inCategory = category === "Tất cả" || book.category === category;
     const q = query.trim().toLocaleLowerCase("vi");
     return inCategory && (!q || `${book.title} ${book.author}`.toLocaleLowerCase("vi").includes(q));
-  }), [category, query]);
+  }), [catalog, category, query]);
 
   const addToCart = (book: Book) => {
     setCart((current) => current.some((item) => item.id === book.id) ? current : [...current, book]);
     setCartOpen(true);
+  };
+
+  const toggleFavorite = async (bookId: string) => {
+    if (!user) { window.location.assign(`/auth?next=/#books`); return; }
+    const wasFavorite = favorites.includes(bookId);
+    setFavorites((items) => wasFavorite ? items.filter((id) => id !== bookId) : [...items, bookId]);
+    try { await api(`/favorites/${encodeURIComponent(bookId)}`, { method: wasFavorite ? "DELETE" : "POST" }, true); }
+    catch { setFavorites((items) => wasFavorite ? [...new Set([...items, bookId])] : items.filter((id) => id !== bookId)); }
   };
 
   const cartTotal = cart.reduce((sum, book) => sum + book.price, 0);
@@ -38,7 +56,7 @@ export function Storefront() {
     try {
       const payment = await api<{ checkoutUrl: string }>("/payments/payos", {
         method: "POST",
-        body: JSON.stringify({ bookIds: cart.map((book) => book.id) }),
+        body: JSON.stringify({ bookIds: cart.map((book) => book.id), clientRequestId: checkoutRequestId.current ??= crypto.randomUUID() }),
       }, true);
       window.location.assign(payment.checkoutUrl);
     } catch {
@@ -73,32 +91,32 @@ export function Storefront() {
           </div>
           <div className="hero-visual">
             <div className="hero-orb orb-one"></div><div className="hero-orb orb-two"></div>
-            <div className="book-stack"><div className="stack-back"><BookCover book={books[1]} large/></div><div className="stack-front"><BookCover book={books[0]} large/></div></div>
+            <div className="book-stack"><div className="stack-back"><BookCover book={catalog[1] ?? catalog[0]} large/></div><div className="stack-front"><BookCover book={catalog[0]} large/></div></div>
             <div className="floating-note"><span className="avatar-group"><i>A</i><i>M</i><i>K</i></span><p><strong>4.9/5</strong><br/>từ cộng đồng đọc</p></div>
           </div>
         </section>
 
         <section className="category-section" aria-label="Danh mục sách">
           <div className="section-intro compact"><span className="eyebrow">Đọc theo cảm hứng</span><h2>Hôm nay bạn muốn đọc gì?</h2></div>
-          <div className="category-list">{["Tất cả", ...Array.from(new Set(books.map((book) => book.category))).slice(0, 6)].map((item) => <button key={item} className={category === item ? "active" : ""} onClick={() => setCategory(item)}>{item}</button>)}</div>
+          <div className="category-list">{["Tất cả", ...Array.from(new Set(catalog.map((book) => book.category))).slice(0, 6)].map((item) => <button key={item} className={category === item ? "active" : ""} onClick={() => setCategory(item)}>{item}</button>)}</div>
         </section>
 
         <section className="books-section" id="books">
           <div className="section-head"><div className="section-intro"><span className="eyebrow">Được yêu thích</span><h2>Sách dành cho bạn</h2><p>Những tựa sách được độc giả CapstoneBook lựa chọn nhiều nhất tuần này.</p></div><span className="result-count">{filtered.length} tựa sách</span></div>
           {filtered.length ? <div className="book-grid">{filtered.map((book) => (
             <article className="book-card" key={book.id}>
-              <div className="cover-wrap"><BookCover book={book}/><button className={`favorite ${favorites.includes(book.id) ? "active" : ""}`} onClick={() => setFavorites((items) => items.includes(book.id) ? items.filter((id) => id !== book.id) : [...items, book.id])} aria-label="Thêm vào yêu thích"><Heart size={18} fill={favorites.includes(book.id) ? "currentColor" : "none"}/></button>{book.premium && <span className="premium-badge"><Sparkles size={12}/> Premium</span>}</div>
-              <div className="book-info"><div className="book-meta"><span>{book.format}</span><span><Star size={13} fill="currentColor"/> {book.rating}</span></div><h3><Link href={`/books/${encodeURIComponent(book.id)}`}>{book.title}</Link></h3><p>{book.author}</p>{book.id === books[0].id && <Link className="sample-read-link" href="/read/demo"><Eye size={16}/> Đọc thử online</Link>}<div className="book-buy"><div><strong>{money(book.price)}</strong>{book.oldPrice && <del>{money(book.oldPrice)}</del>}</div><button onClick={() => addToCart(book)} aria-label={`Thêm ${book.title} vào giỏ`}><ShoppingBag size={18}/></button></div></div>
+              <div className="cover-wrap"><BookCover book={book}/><button className={`favorite ${favorites.includes(book.id) ? "active" : ""}`} onClick={() => void toggleFavorite(book.id)} aria-label={favorites.includes(book.id) ? "Bỏ khỏi yêu thích" : "Thêm vào yêu thích"}><Heart size={18} fill={favorites.includes(book.id) ? "currentColor" : "none"}/></button>{book.premium && <span className="premium-badge"><Sparkles size={12}/> Premium</span>}</div>
+              <div className="book-info"><div className="book-meta"><span>{book.format}</span><span><Star size={13} fill="currentColor"/> {book.rating || "Mới"}</span></div><h3><Link href={`/books/${encodeURIComponent(book.id)}`}>{book.title}</Link></h3><p>{book.author}</p>{book.readingEnabled && <Link className="sample-read-link" href={`/books/${encodeURIComponent(book.id)}`}><Eye size={16}/> Có bản đọc online</Link>}<div className="book-buy"><div><strong>{money(book.price)}</strong>{book.oldPrice && <del>{money(book.oldPrice)}</del>}</div><button onClick={() => addToCart(book)} aria-label={`Thêm ${book.title} vào giỏ`}><ShoppingBag size={18}/></button></div></div>
             </article>
           ))}</div> : <div className="empty-state"><Search size={28}/><h3>Chưa tìm thấy cuốn sách phù hợp</h3><p>Thử từ khóa khác hoặc xem lại toàn bộ danh mục.</p><button className="button button-secondary" onClick={() => {setQuery("");setCategory("Tất cả")}}>Xem tất cả sách</button></div>}
         </section>
 
-        <section className="premium-section" id="premium"><div className="premium-copy"><span className="eyebrow light"><Sparkles size={15}/> Capstone Premium</span><h2>Một gói đọc.<br/>Ngàn câu chuyện.</h2><p>Đọc không giới hạn kho Ebook tuyển chọn, đồng bộ tiến độ và nhận ưu đãi riêng cho thành viên.</p><ul><li><Check size={17}/> Đọc Ebook Premium không giới hạn</li><li><Check size={17}/> Không quảng cáo, không gián đoạn</li><li><Check size={17}/> Hủy bất cứ lúc nào</li></ul><button className="button button-light">Dùng thử 7 ngày <ArrowRight size={18}/></button></div><div className="premium-card"><div><span>Gói được yêu thích</span><strong>49.000<small>đ / tháng</small></strong><p>Trọn vẹn trải nghiệm đọc của bạn.</p></div><div className="mini-covers">{books.slice(1,4).map((book) => <BookCover key={book.id} book={book}/>)}</div></div></section>
+        <section className="premium-section" id="premium"><div className="premium-copy"><span className="eyebrow light"><Sparkles size={15}/> Capstone Premium</span><h2>Một gói đọc.<br/>Ngàn câu chuyện.</h2><p>Đọc không giới hạn kho Ebook tuyển chọn, đồng bộ tiến độ và nhận ưu đãi riêng cho thành viên.</p><ul><li><Check size={17}/> Đọc Ebook Premium không giới hạn</li><li><Check size={17}/> Không quảng cáo, không gián đoạn</li><li><Check size={17}/> Hủy bất cứ lúc nào</li></ul><button className="button button-light">Dùng thử 7 ngày <ArrowRight size={18}/></button></div><div className="premium-card"><div><span>Gói được yêu thích</span><strong>49.000<small>đ / tháng</small></strong><p>Trọn vẹn trải nghiệm đọc của bạn.</p></div><div className="mini-covers">{catalog.slice(1,4).map((book) => <BookCover key={book.id} book={book}/>)}</div></div></section>
 
         <section className="promise-section" id="about"><div><span>01</span><h3>Sách chính hãng</h3><p>Nguồn sách minh bạch từ nhà xuất bản và đối tác uy tín.</p></div><div><span>02</span><h3>Đọc ngay tức thì</h3><p>Ebook được cấp quyền tự động sau thanh toán hợp lệ.</p></div><div><span>03</span><h3>Hỗ trợ tận tâm</h3><p>Luôn có người đồng hành khi trải nghiệm chưa trọn vẹn.</p></div></section>
       </main>
 
-      <footer className="site-footer"><Link href="/" className="brand footer-brand"><span className="brand-mark"><BookOpen size={19}/></span><span>Capstone<span>Book</span></span></Link><p>Đọc sâu hơn. Sống rộng hơn.</p><div><a href="#books">Sách</a><a href="#premium">Premium</a><Link href="/system">Kiến trúc hệ thống</Link></div><small>© 2026 CapstoneBook. Demo học thuật.</small></footer>
+      <footer className="site-footer"><Link href="/" className="brand footer-brand"><span className="brand-mark"><BookOpen size={19}/></span><span>Capstone<span>Book</span></span></Link><p>Đọc sâu hơn. Sống rộng hơn.</p><div><a href="#books">Sách</a><a href="#premium">Premium</a><Link href="/system">Kiến trúc hệ thống</Link>{user?.role === "ADMIN" && <Link href="/admin">Quản trị</Link>}</div><small>© 2026 CapstoneBook. Demo học thuật.</small></footer>
 
       <div className={`drawer-backdrop ${cartOpen ? "show" : ""}`} onClick={() => setCartOpen(false)}></div>
       <aside className={`cart-drawer ${cartOpen ? "open" : ""}`} aria-hidden={!cartOpen}>

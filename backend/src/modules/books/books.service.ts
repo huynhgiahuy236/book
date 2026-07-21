@@ -13,7 +13,17 @@ export class BooksService implements OnModuleInit {
       BOOKS.map((book) => ({
         updateOne: {
           filter: { id: book.id },
-          update: { $set: book },
+          update: {
+            $set: {
+              ...book,
+              slug: book.slug ?? book.id,
+              accessType: book.accessType ?? (book.premium ? 'PREMIUM' : 'PURCHASE'),
+              status: book.status ?? 'ACTIVE',
+              readingEnabled: book.readingEnabled ?? false,
+              ebookPrice: book.format === 'EBOOK' ? book.price : 0,
+              physicalPrice: book.format === 'PHYSICAL' ? book.price : 0,
+            },
+          },
           upsert: true,
         },
       })),
@@ -22,11 +32,19 @@ export class BooksService implements OnModuleInit {
   }
 
   async findAll() {
-    return this.books.find().sort({ createdAt: 1 }).lean();
+    return this.books.find({ status: { $ne: 'ARCHIVED' } }).sort({ createdAt: 1 }).lean();
+  }
+
+  async findAllPublic() {
+    return (await this.findAll()).map((book) => this.toPublic(book));
+  }
+
+  async findOnePublic(id: string) {
+    return this.toPublic(await this.findOne(id));
   }
 
   async findOne(id: string) {
-    const book = await this.books.findOne({ id }).lean();
+    const book = await this.books.findOne({ $or: [{ id }, { slug: id }] }).lean();
     if (!book) throw new NotFoundException('Không tìm thấy sách');
     return book;
   }
@@ -37,5 +55,14 @@ export class BooksService implements OnModuleInit {
     if (books.length !== uniqueIds.length)
       throw new NotFoundException('Một hoặc nhiều sách không tồn tại');
     return uniqueIds.map((id) => books.find((book) => book.id === id)!);
+  }
+
+  async updateRating(id: string, averageRating: number | null, ratingsCount: number) {
+    await this.books.updateOne({ id }, { $set: { averageRating, ratingsCount } });
+  }
+
+  toPublic<T extends { ebookFile?: unknown }>(book: T) {
+    const { ebookFile, ...safe } = book;
+    return { ...safe, hasReadableContent: Boolean(ebookFile) };
   }
 }

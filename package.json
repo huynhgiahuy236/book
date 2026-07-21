@@ -12,7 +12,8 @@
     "build": "npm run build --workspace=@capstonebook/frontend && npm run build --workspace=@capstonebook/backend",
     "lint": "npm run lint --workspace=@capstonebook/frontend && npm run lint --workspace=@capstonebook/backend",
     "test": "npm test --workspace=@capstonebook/backend -- --runInBand",
-    "import:books": "node backend/scripts/import-open-library.mjs"
+    "import:books": "node backend/scripts/import-open-library.mjs",
+    "seed:dac-nhan-tam": "npm run seed:dac-nhan-tam --workspace=@capstonebook/backend"
   },
   "dependencies": {
     "class-transformer": "^0.5.1",

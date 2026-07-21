@@ -3,6 +3,7 @@ import { resolve } from 'node:path';
 
 export type BookRecord = {
   id: string;
+  slug?: string;
   externalId: string;
   source: 'OPEN_LIBRARY';
   sourceUrl: string;
@@ -23,6 +24,9 @@ export type BookRecord = {
   ratingsCount: number;
   format: 'EBOOK' | 'PHYSICAL';
   premium: boolean;
+  accessType?: 'FREE' | 'PREMIUM' | 'PURCHASE';
+  status?: 'ACTIVE' | 'DRAFT' | 'ARCHIVED';
+  readingEnabled?: boolean;
   price: number;
   pricingNote: 'DEMO_PRICE_NOT_RETAIL';
   importedAt: string;

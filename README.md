@@ -1,5 +1,17 @@
 # CapstoneBook
 
+CapstoneBook gồm hai workspace rõ ràng:
+
+- `frontend/`: Next.js, storefront, tài khoản, thư viện và PDF.js reader.
+- `backend/`: NestJS, MongoDB, auth, PayOS, storage private, quyền đọc và AI.
+
+Tài liệu cấu hình chi tiết:
+
+- [Biến môi trường](docs/ENVIRONMENT.md)
+- [PDF reader local](docs/LOCAL-PDF-READER.md)
+
+Vertical slice chính dùng ID/slug `dac-nhan-tam`. PDF private phải có tên `dac-nhan-tam.pdf` tại `backend/storage/private/ebooks/`; file này không được Git theo dõi. Metadata được upsert bằng script `npm run seed:dac-nhan-tam` do người phát triển tự chạy sau khi cấu hình MongoDB.
+
 Monorepo nhà sách và trình đọc Ebook, tổ chức thành đúng hai ứng dụng độc lập:
 
 ```text

@@ -40,6 +40,16 @@ next-env.d.ts
 uploads/
 storage/
 
+# Private ebook storage: keep folder documentation, never commit book files
+!backend/storage/
+!backend/storage/private/
+!backend/storage/private/ebooks/
+backend/storage/private/ebooks/*
+!backend/storage/private/ebooks/README.md
+!backend/storage/private/ebooks/.gitkeep
+!backend/src/modules/storage/
+!backend/src/modules/storage/**
+
 # Private keys and certificates
 *.pem
 *.key

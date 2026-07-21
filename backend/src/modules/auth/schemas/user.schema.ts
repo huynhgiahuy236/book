@@ -15,8 +15,18 @@ export class User {
   })
   email!: string;
 
-  @Prop({ required: true, select: false })
-  passwordHash!: string;
+  @Prop({ select: false, default: null })
+  passwordHash!: string | null;
+
+  @Prop({ default: 'LOCAL', enum: ['LOCAL', 'GOOGLE'] })
+  provider!: 'LOCAL' | 'GOOGLE';
+
+  @Prop({ type: String, default: null, index: true, sparse: true })
+  googleId!: string | null;
+
+  @Prop({ type: String, default: null }) avatarUrl!: string | null;
+  @Prop({ default: false }) emailVerified!: boolean;
+  @Prop({ default: 'ACTIVE', enum: ['ACTIVE', 'LOCKED'] }) status!: 'ACTIVE' | 'LOCKED';
 
   @Prop({ default: 'USER', enum: ['USER', 'ADMIN'] })
   role!: 'USER' | 'ADMIN';

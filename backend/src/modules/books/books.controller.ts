@@ -7,11 +7,11 @@ export class BooksController {
 
   @Get()
   findAll() {
-    return this.books.findAll();
+    return this.books.findAllPublic();
   }
 
   @Get(':id')
   findOne(@Param('id') id: string) {
-    return this.books.findOne(id);
+    return this.books.findOnePublic(id);
   }
 }
