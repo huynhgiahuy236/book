@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import type { PDFDocumentProxy, RenderTask } from "pdfjs-dist";
+import type { PDFDocumentLoadingTask, PDFDocumentProxy, RenderTask } from "pdfjs-dist";
 import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import { ArrowLeft, ChevronLeft, ChevronRight, Columns3, Expand, Library, List, LockKeyhole, Maximize2, Minus, Plus, RefreshCw, ShieldCheck, X } from "lucide-react";
 import { API_URL, ApiError, api, getToken } from "@/shared/lib/api";
@@ -32,10 +32,11 @@ export function ProtectedReader({ bookId }: { bookId: string }) {
 
   useEffect(() => {
     let cancelled = false;
-    let loadedPdf: PDFDocumentProxy | null = null;
+    let loadingTask: PDFDocumentLoadingTask | null = null;
     const load = async () => {
       try {
         const payload = await api<ReaderPayload>(`/library/${encodeURIComponent(bookId)}/read`, {}, true);
+        if (cancelled) return;
         const pdfjs = await import("pdfjs-dist");
         pdfjs.GlobalWorkerOptions.workerSrc = new URL("pdfjs-dist/build/pdf.worker.min.mjs", import.meta.url).toString();
         const token = getToken();
@@ -45,19 +46,20 @@ export function ProtectedReader({ bookId }: { bookId: string }) {
           withCredentials: true,
           rangeChunkSize: 128 * 1024,
         });
+        loadingTask = task;
         const document = await task.promise;
-        if (cancelled) { await document.destroy(); return; }
-        loadedPdf = document;
+        if (cancelled) return;
         const savedPage = Math.min(Math.max(payload.progress.currentPage ?? 1, 1), document.numPages);
         setSession(payload); setPdf(document); setPageNumber(savedPage); setPageInput(String(savedPage)); setStatus("ready");
       } catch (error) {
+        if (cancelled) return;
         const apiError = error as ApiError;
         setStatus(apiError.status === 401 ? "unauthorized" : apiError.status === 403 ? "forbidden" : "error");
         setMessage(error instanceof Error ? error.message : "Không thể mở tài liệu");
       }
     };
     void load();
-    return () => { cancelled = true; if (loadedPdf) void loadedPdf.destroy(); };
+    return () => { cancelled = true; renderTaskRef.current?.cancel(); if (loadingTask) void loadingTask.destroy(); };
   }, [bookId]);
 
   const renderPage = useCallback(async () => {
