@@ -47,6 +47,7 @@ storage/
 backend/storage/private/ebooks/*
 !backend/storage/private/ebooks/README.md
 !backend/storage/private/ebooks/.gitkeep
+!backend/storage/private/ebooks/dac-nhan-tam.pdf
 !backend/src/modules/storage/
 !backend/src/modules/storage/**
 
