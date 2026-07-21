@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { ArrowRight, BookOpen, Check, ChevronRight, Eye, Heart, Info, Library, LogIn, Menu, Search, ShoppingBag, Sparkles, Star, X } from "lucide-react";
+import { ArrowRight, BookOpen, Check, ChevronRight, Eye, Heart, Info, Library, LogIn, Menu, Search, ShieldCheck, ShoppingBag, Sparkles, Star, X } from "lucide-react";
 import { bookFromApi, books as fallbackBooks, money, type ApiBook, type Book } from "@/features/catalog/lib/books";
 import { api, getCurrentUser, type SessionUser } from "@/shared/lib/api";
 import { BookCover } from "./book-cover";
@@ -105,6 +105,7 @@ export function Storefront() {
         </nav>
         <div className="header-actions">
           <label className="search-field"><Search size={18}/><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Tìm sách, tác giả..." aria-label="Tìm sách"/></label>
+          {user?.role === "ADMIN" && <Link className="admin-entry" href="/admin"><ShieldCheck size={18}/><span>Quản trị</span></Link>}
           <Link className="icon-btn account-btn" href={user ? "/library" : "/auth"} aria-label={user ? `Thư viện của ${user.name}` : "Đăng nhập"}>{user ? <Library size={20}/> : <LogIn size={20}/>}</Link>
           <button className="icon-btn cart-btn" onClick={() => setCartOpen(true)} aria-label={`Giỏ hàng có ${cart.length} sản phẩm`}><ShoppingBag size={20}/>{cart.length > 0 && <span>{cart.length}</span>}</button>
           <button className="icon-btn menu-btn" onClick={() => setMenuOpen(!menuOpen)} aria-label="Mở menu">{menuOpen ? <X size={21}/> : <Menu size={21}/>}</button>

@@ -88,9 +88,12 @@ export class AuthService {
       .select('+tokenHash');
     if (!session || !(await compare(refreshToken, session.tokenHash)))
       throw new UnauthorizedException('Phiên đăng nhập không còn hiệu lực');
+    const user = await this.users.findById(payload.sub);
+    if (!user || user.status === 'LOCKED')
+      throw new UnauthorizedException('Tài khoản không còn hiệu lực');
     session.revokedAt = new Date();
     await session.save();
-    return this.issue(payload.sub, payload.email, payload.name, payload.role);
+    return this.issue(user.id, user.email, user.name, user.role);
   }
 
   async logout(refreshToken?: string) {

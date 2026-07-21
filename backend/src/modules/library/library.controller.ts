@@ -22,7 +22,7 @@ export class LibraryController {
 
   @Get()
   list(@CurrentUser() user: AuthUser) {
-    return this.library.list(user.sub);
+    return this.library.list(user);
   }
 
   @Get(':bookId/read')

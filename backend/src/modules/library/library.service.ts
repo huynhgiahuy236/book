@@ -48,12 +48,27 @@ export class LibraryService {
     return Boolean(await this.rights.exists({ userId, bookId }));
   }
 
-  async list(userId: string) {
+  async list(user: AuthUser) {
+    const progresses = await this.progress.find({ userId: user.sub }).lean();
+    if (user.role === 'ADMIN') {
+      const books = (await this.books.findAll()).filter(
+        (book) => book.readingEnabled && book.ebookFile,
+      );
+      return books.map((book) => ({
+        right: { source: 'ADMIN' as const },
+        book: this.books.toPublic(book),
+        progress: progresses.find((item) => item.bookId === book.id) ?? {
+          currentPage: 1,
+          totalPages: 0,
+          progressPercentage: 0,
+          percent: 0,
+        },
+      }));
+    }
     const rights = await this.rights
-      .find({ userId })
+      .find({ userId: user.sub })
       .sort({ createdAt: -1 })
       .lean();
-    const progresses = await this.progress.find({ userId }).lean();
     return Promise.all(
       rights.map(async (right) => ({
         right,
