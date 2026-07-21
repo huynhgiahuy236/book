@@ -1,36 +1,94 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# CapstoneBook
 
-## Getting Started
+Monorepo nhà sách và trình đọc Ebook, tổ chức thành đúng hai ứng dụng độc lập:
 
-First, run the development server:
-
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+```text
+CapstoneBook/
+├── frontend/                 # Next.js 16 + React 19
+│   ├── public/
+│   └── src/
+│       ├── app/              # Route và metadata, không chứa nghiệp vụ lớn
+│       ├── features/         # Code theo miền nghiệp vụ
+│       │   ├── auth/
+│       │   ├── catalog/
+│       │   ├── library/
+│       │   └── reader/
+│       ├── shared/           # API client và tiện ích dùng chung
+│       └── styles/           # CSS tách theo vùng giao diện
+├── backend/                  # NestJS + MongoDB + PayOS
+│   ├── data/                 # Snapshot metadata sách dùng để seed
+│   ├── scripts/              # Importer Open Library
+│   ├── test/                 # E2E test
+│   └── src/
+│       ├── modules/
+│       │   ├── auth/
+│       │   ├── books/
+│       │   ├── library/
+│       │   └── payments/
+│       ├── app.module.ts
+│       └── main.ts
+├── .env                      # Secret local, không commit
+├── .env.example              # Danh sách biến môi trường
+├── package.json              # Workspace scripts
+└── ARCHITECTURE.md           # Quy tắc tổ chức source
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Chạy local
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+Yêu cầu MongoDB service đang chạy tại `127.0.0.1:27017`.
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+```powershell
+npm install
+npm run dev:backend
+```
 
-## Learn More
+Mở terminal thứ hai:
 
-To learn more about Next.js, take a look at the following resources:
+```powershell
+npm run dev:frontend
+```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+- Frontend: `http://localhost:3000`
+- Backend: `http://localhost:4000/api/v1`
+- Catalog API: `http://localhost:4000/api/v1/books`
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+Backend ưu tiên `backend/.env.local`, sau đó mới đọc `.env` ở root. Frontend chỉ được phép nhận biến công khai qua `frontend/.env.local`.
 
-## Deploy on Vercel
+## Luồng Ebook hoàn chỉnh
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+```text
+Đăng ký/Đăng nhập → JWT → Chi tiết sách → Order
+→ PayOS webhook hoặc test mua local → ReadingRight
+→ Thư viện → Reader → ReadingProgress trong MongoDB
+```
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Các trang chính:
+
+- `/auth`: đăng ký và đăng nhập.
+- `/books/:id`: chi tiết và mua sách.
+- `/library`: các Ebook đã được cấp quyền.
+- `/read/:bookId`: reader có kiểm tra ReadingRight.
+- `/read/demo`: reader công khai dùng thử.
+
+Nút **Test mua local** chỉ hoạt động ngoài production. Redirect PayOS không tự cấp quyền; chỉ webhook hợp lệ hoặc endpoint development mới tạo ReadingRight.
+
+## Dữ liệu sách
+
+```powershell
+npm run import:books
+```
+
+Importer ghi cùng một snapshot vào:
+
+- `backend/data/books.real.json` để seed MongoDB.
+- `frontend/src/features/catalog/data/books.real.json` để dựng catalog tĩnh nhanh.
+
+Metadata và bìa đến từ Open Library. Giá, Premium và nội dung đọc là dữ liệu demo học thuật.
+
+## Kiểm tra chất lượng
+
+```powershell
+npm run lint
+npm run build
+npm test
+```

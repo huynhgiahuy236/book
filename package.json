@@ -1,26 +1,21 @@
 {
-  "name": "web",
+  "name": "capstonebook",
   "version": "0.1.0",
   "private": true,
+  "workspaces": [
+    "frontend",
+    "backend"
+  ],
   "scripts": {
-    "dev": "next dev",
-    "build": "next build",
-    "start": "next start",
-    "lint": "eslint"
+    "dev:frontend": "npm run dev --workspace=@capstonebook/frontend",
+    "dev:backend": "npm run start:dev --workspace=@capstonebook/backend",
+    "build": "npm run build --workspace=@capstonebook/frontend && npm run build --workspace=@capstonebook/backend",
+    "lint": "npm run lint --workspace=@capstonebook/frontend && npm run lint --workspace=@capstonebook/backend",
+    "test": "npm test --workspace=@capstonebook/backend -- --runInBand",
+    "import:books": "node backend/scripts/import-open-library.mjs"
   },
   "dependencies": {
-    "next": "16.2.10",
-    "react": "19.2.4",
-    "react-dom": "19.2.4"
-  },
-  "devDependencies": {
-    "@tailwindcss/postcss": "^4",
-    "@types/node": "^20",
-    "@types/react": "^19",
-    "@types/react-dom": "^19",
-    "eslint": "^9",
-    "eslint-config-next": "16.2.10",
-    "tailwindcss": "^4",
-    "typescript": "^5"
+    "class-transformer": "^0.5.1",
+    "class-validator": "^0.15.1"
   }
 }
