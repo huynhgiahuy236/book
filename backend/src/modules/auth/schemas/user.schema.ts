@@ -15,7 +15,7 @@ export class User {
   })
   email!: string;
 
-  @Prop({ select: false, default: null })
+  @Prop({ type: String, select: false, default: null })
   passwordHash!: string | null;
 
   @Prop({ default: 'LOCAL', enum: ['LOCAL', 'GOOGLE'] })
