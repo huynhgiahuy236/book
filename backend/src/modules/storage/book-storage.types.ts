@@ -11,6 +11,7 @@ export type StoredBookObject = {
 };
 
 export interface BookStorage {
+  inspect(objectKey: string): Promise<{ size: number }>;
   open(
     objectKey: string,
     range?: { start: number; end?: number },

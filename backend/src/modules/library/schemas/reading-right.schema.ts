@@ -7,6 +7,9 @@ export class ReadingRight {
   @Prop({ required: true, enum: ['PURCHASE', 'DEMO'] }) source!:
     'PURCHASE' | 'DEMO';
   @Prop() orderCode?: number;
+  @Prop({ default: 'ACTIVE', enum: ['ACTIVE', 'REVOKED'] }) status!:
+    'ACTIVE' | 'REVOKED';
+  @Prop({ default: Date.now }) grantedAt!: Date;
 }
 
 export const ReadingRightSchema = SchemaFactory.createForClass(ReadingRight);

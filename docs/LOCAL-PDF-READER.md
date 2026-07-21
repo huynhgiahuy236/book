@@ -2,7 +2,7 @@
 
 1. Tên file bắt buộc: `dac-nhan-tam.pdf`.
 2. Vị trí: `backend/storage/private/ebooks/dac-nhan-tam.pdf`.
-3. File bị `.gitignore` chặn; không chuyển sang `frontend/public`.
+3. Chỉ `dac-nhan-tam.pdf` được `.gitignore` cho phép theo dõi để phục vụ demo; mọi PDF khác trong thư mục vẫn bị chặn. Không chuyển PDF sang `frontend/public`.
 4. Tự chạy `npm run seed:dac-nhan-tam` khi đã nạp `DATABASE_URL` hoặc `MONGODB_URI` vào terminal.
 5. Đăng nhập, mở `/books/dac-nhan-tam`, dùng PayOS hoặc nút cấp quyền local trong development, rồi mở thư viện.
 

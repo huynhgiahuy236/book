@@ -1,6 +1,8 @@
 import {
   BadRequestException,
   ForbiddenException,
+  HttpException,
+  HttpStatus,
   Inject,
   Injectable,
 } from '@nestjs/common';
@@ -36,7 +38,16 @@ export class LibraryService {
       bookIds.map((bookId) => ({
         updateOne: {
           filter: { userId, bookId },
-          update: { $setOnInsert: { userId, bookId, source, orderCode } },
+          update: {
+            $set: { status: 'ACTIVE' },
+            $setOnInsert: {
+              userId,
+              bookId,
+              source,
+              orderCode,
+              grantedAt: new Date(),
+            },
+          },
           upsert: true,
         },
       })),
@@ -45,7 +56,13 @@ export class LibraryService {
   }
 
   async hasRight(userId: string, bookId: string) {
-    return Boolean(await this.rights.exists({ userId, bookId }));
+    return Boolean(
+      await this.rights.exists({
+        userId,
+        bookId,
+        status: { $ne: 'REVOKED' },
+      }),
+    );
   }
 
   async list(user: AuthUser) {
@@ -66,7 +83,7 @@ export class LibraryService {
       }));
     }
     const rights = await this.rights
-      .find({ userId: user.sub })
+      .find({ userId: user.sub, status: { $ne: 'REVOKED' } })
       .sort({ createdAt: -1 })
       .lean();
     return Promise.all(
@@ -83,12 +100,51 @@ export class LibraryService {
     );
   }
 
+  async access(user: AuthUser, bookId: string) {
+    const book = await this.books.findOne(bookId);
+    const right =
+      user.role === 'ADMIN' || book.accessType === 'FREE'
+        ? null
+        : await this.rights
+            .findOne({
+              userId: user.sub,
+              bookId: book.id,
+              status: { $ne: 'REVOKED' },
+            })
+            .lean();
+    const source =
+      user.role === 'ADMIN'
+        ? 'ADMIN'
+        : book.accessType === 'FREE'
+          ? 'FREE'
+          : right?.source;
+    const progress = await this.progress
+      .findOne({ userId: user.sub, bookId: book.id })
+      .lean();
+    const hasAccess = Boolean(source);
+    return {
+      bookId: book.id,
+      owned: user.role === 'ADMIN' || Boolean(right),
+      canRead: hasAccess && book.readingEnabled && Boolean(book.ebookFile),
+      source,
+      readingEnabled: book.readingEnabled,
+      hasReadableContent: Boolean(book.ebookFile),
+      progress: progress ?? {
+        currentPage: 1,
+        totalPages: 0,
+        progressPercentage: 0,
+      },
+    };
+  }
+
   async read(user: AuthUser, bookId: string) {
     const book = await this.books.findOne(bookId);
     await this.assertRight(user, book);
     if (!book.readingEnabled || !book.ebookFile) {
       throw new ForbiddenException('Cuốn sách này chưa bật chế độ đọc online');
     }
+    this.assertPdfMime(book.ebookFile.mimeType);
+    await this.storage.inspect(book.ebookFile.objectKey);
     const progress = await this.progress
       .findOne({ userId: user.sub, bookId: book.id })
       .lean();
@@ -119,6 +175,7 @@ export class LibraryService {
     if (!book.readingEnabled || !book.ebookFile?.objectKey) {
       throw new ForbiddenException('Cuốn sách này chưa có nội dung đọc online');
     }
+    this.assertPdfMime(book.ebookFile.mimeType);
     const range = rangeHeader ? this.parseRange(rangeHeader) : undefined;
     return {
       object: await this.storage.open(book.ebookFile.objectKey, range),
@@ -154,18 +211,28 @@ export class LibraryService {
 
   private async assertRight(user: AuthUser, book: ReadableBook) {
     if (user.role === 'ADMIN' || book.accessType === 'FREE') return;
-    if (!(await this.rights.exists({ userId: user.sub, bookId: book.id }))) {
+    if (!(await this.hasRight(user.sub, book.id))) {
       throw new ForbiddenException('Bạn chưa sở hữu quyền đọc cuốn sách này');
     }
   }
 
   private parseRange(value: string) {
     const match = /^bytes=(\d+)-(\d*)$/.exec(value.trim());
-    if (!match) throw new BadRequestException('Header Range không hợp lệ');
+    if (!match)
+      throw new HttpException(
+        'Header Range không hợp lệ',
+        HttpStatus.REQUESTED_RANGE_NOT_SATISFIABLE,
+      );
     return {
       start: Number(match[1]),
       end: match[2] ? Number(match[2]) : undefined,
     };
+  }
+
+  private assertPdfMime(mimeType?: string) {
+    if (mimeType?.toLowerCase() !== 'application/pdf') {
+      throw new BadRequestException('Nội dung ebook không phải định dạng PDF');
+    }
   }
 
   private maskEmail(email: string) {

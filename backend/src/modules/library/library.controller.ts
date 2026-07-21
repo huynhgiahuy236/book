@@ -25,6 +25,11 @@ export class LibraryController {
     return this.library.list(user);
   }
 
+  @Get(':bookId/access')
+  access(@CurrentUser() user: AuthUser, @Param('bookId') bookId: string) {
+    return this.library.access(user, bookId);
+  }
+
   @Get(':bookId/read')
   read(@CurrentUser() user: AuthUser, @Param('bookId') bookId: string) {
     return this.library.read(user, bookId);
