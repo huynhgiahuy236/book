@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useState, type FormEvent } from "react";
-import { ArrowLeft, ArrowRight, BookOpen, Check, CreditCard, Eye, Library, LogIn, MessageSquare, ShieldCheck, Sparkles, Star } from "lucide-react";
+import { ArrowLeft, BookOpen, Check, CreditCard, Eye, Library, LogIn, MessageSquare, ShieldCheck, Sparkles, Star } from "lucide-react";
 import { api, getCurrentUser, type SessionUser } from "@/shared/lib/api";
 import { bookFromApi, books as fallbackBooks, money, type ApiBook, type Book } from "@/features/catalog/lib/books";
 import { BookCover } from "./book-cover";

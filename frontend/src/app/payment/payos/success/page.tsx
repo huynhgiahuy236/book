@@ -13,7 +13,10 @@ export default function PayOSSuccessPage() {
 
   useEffect(() => {
     const orderCode = new URLSearchParams(window.location.search).get("orderCode");
-    if (!orderCode) { setChecking(false); return; }
+    if (!orderCode) {
+      const timer = window.setTimeout(() => setChecking(false), 0);
+      return () => window.clearTimeout(timer);
+    }
     let attempts = 0;
     const check = async () => {
       attempts += 1;

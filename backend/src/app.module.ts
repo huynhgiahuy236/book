@@ -31,7 +31,10 @@ import { EngagementModule } from './modules/engagement/engagement.module';
         JWT_REFRESH_SECRET: Joi.string().min(24).required(),
         JWT_ACCESS_EXPIRES_IN: Joi.string().default('15m'),
         JWT_REFRESH_EXPIRES_IN: Joi.string().default('30d'),
-        PAYOS_ENABLED: Joi.boolean().truthy('true').falsy('false').default(true),
+        PAYOS_ENABLED: Joi.boolean()
+          .truthy('true')
+          .falsy('false')
+          .default(true),
         PAYOS_CLIENT_ID: Joi.string().allow('').optional(),
         PAYOS_API_KEY: Joi.string().allow('').optional(),
         PAYOS_CHECKSUM_KEY: Joi.string().allow('').optional(),
@@ -40,7 +43,10 @@ import { EngagementModule } from './modules/engagement/engagement.module';
         PAYOS_PAYMENT_EXPIRES_MINUTES: Joi.number().positive().default(15),
         BOOK_STORAGE_DRIVER: Joi.string().valid('local').default('local'),
         BOOK_STORAGE_ROOT: Joi.string().default('storage/private/ebooks'),
-        EMAIL_ENABLED: Joi.boolean().truthy('true').falsy('false').default(false),
+        EMAIL_ENABLED: Joi.boolean()
+          .truthy('true')
+          .falsy('false')
+          .default(false),
         GOOGLE_CLIENT_ID: Joi.string().allow('').optional(),
         GOOGLE_CLIENT_SECRET: Joi.string().allow('').optional(),
         GOOGLE_CALLBACK_URL: Joi.string().uri().allow('').optional(),

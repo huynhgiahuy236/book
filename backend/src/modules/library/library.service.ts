@@ -1,4 +1,9 @@
-import { BadRequestException, ForbiddenException, Inject, Injectable } from '@nestjs/common';
+import {
+  BadRequestException,
+  ForbiddenException,
+  Inject,
+  Injectable,
+} from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import type { AuthUser } from '../auth/types/auth-user.type';
@@ -13,13 +18,20 @@ type ReadableBook = Awaited<ReturnType<BooksService['findOne']>>;
 @Injectable()
 export class LibraryService {
   constructor(
-    @InjectModel(ReadingRight.name) private readonly rights: Model<ReadingRight>,
-    @InjectModel(ReadingProgress.name) private readonly progress: Model<ReadingProgress>,
+    @InjectModel(ReadingRight.name)
+    private readonly rights: Model<ReadingRight>,
+    @InjectModel(ReadingProgress.name)
+    private readonly progress: Model<ReadingProgress>,
     private readonly books: BooksService,
     @Inject(BOOK_STORAGE) private readonly storage: BookStorage,
   ) {}
 
-  async grant(userId: string, bookIds: string[], source: 'PURCHASE' | 'DEMO', orderCode?: number) {
+  async grant(
+    userId: string,
+    bookIds: string[],
+    source: 'PURCHASE' | 'DEMO',
+    orderCode?: number,
+  ) {
     await this.rights.bulkWrite(
       bookIds.map((bookId) => ({
         updateOne: {
@@ -37,7 +49,10 @@ export class LibraryService {
   }
 
   async list(userId: string) {
-    const rights = await this.rights.find({ userId }).sort({ createdAt: -1 }).lean();
+    const rights = await this.rights
+      .find({ userId })
+      .sort({ createdAt: -1 })
+      .lean();
     const progresses = await this.progress.find({ userId }).lean();
     return Promise.all(
       rights.map(async (right) => ({
@@ -59,7 +74,9 @@ export class LibraryService {
     if (!book.readingEnabled || !book.ebookFile) {
       throw new ForbiddenException('Cuốn sách này chưa bật chế độ đọc online');
     }
-    const progress = await this.progress.findOne({ userId: user.sub, bookId: book.id }).lean();
+    const progress = await this.progress
+      .findOne({ userId: user.sub, bookId: book.id })
+      .lean();
     return {
       book: this.books.toPublic(book),
       document: {
@@ -67,7 +84,11 @@ export class LibraryService {
         mimeType: book.ebookFile.mimeType ?? 'application/pdf',
         pageCount: book.ebookFile.pageCount ?? book.pageCount ?? null,
       },
-      progress: progress ?? { currentPage: 1, totalPages: 0, progressPercentage: 0 },
+      progress: progress ?? {
+        currentPage: 1,
+        totalPages: 0,
+        progressPercentage: 0,
+      },
       watermark: {
         name: user.name,
         maskedEmail: this.maskEmail(user.email),
@@ -84,28 +105,36 @@ export class LibraryService {
       throw new ForbiddenException('Cuốn sách này chưa có nội dung đọc online');
     }
     const range = rangeHeader ? this.parseRange(rangeHeader) : undefined;
-    return { object: await this.storage.open(book.ebookFile.objectKey, range), partial: Boolean(range) };
+    return {
+      object: await this.storage.open(book.ebookFile.objectKey, range),
+      partial: Boolean(range),
+    };
   }
 
   async saveProgress(user: AuthUser, bookId: string, dto: UpdateProgressDto) {
     const book = await this.books.findOne(bookId);
     await this.assertRight(user, book);
-    const percentage = Math.min(100, Math.round((dto.currentPage / dto.totalPages) * 100));
-    return this.progress.findOneAndUpdate(
-      { userId: user.sub, bookId: book.id },
-      {
-        $set: {
-          chapter: dto.chapter ?? 0,
-          percent: dto.percent ?? percentage,
-          currentPage: dto.currentPage,
-          totalPages: dto.totalPages,
-          progressPercentage: percentage,
-          lastReadAt: new Date(),
-          completedAt: percentage === 100 ? new Date() : null,
+    const percentage = Math.min(
+      100,
+      Math.round((dto.currentPage / dto.totalPages) * 100),
+    );
+    return this.progress
+      .findOneAndUpdate(
+        { userId: user.sub, bookId: book.id },
+        {
+          $set: {
+            chapter: dto.chapter ?? 0,
+            percent: dto.percent ?? percentage,
+            currentPage: dto.currentPage,
+            totalPages: dto.totalPages,
+            progressPercentage: percentage,
+            lastReadAt: new Date(),
+            completedAt: percentage === 100 ? new Date() : null,
+          },
         },
-      },
-      { upsert: true, new: true },
-    ).lean();
+        { upsert: true, new: true },
+      )
+      .lean();
   }
 
   private async assertRight(user: AuthUser, book: ReadableBook) {
@@ -118,7 +147,10 @@ export class LibraryService {
   private parseRange(value: string) {
     const match = /^bytes=(\d+)-(\d*)$/.exec(value.trim());
     if (!match) throw new BadRequestException('Header Range không hợp lệ');
-    return { start: Number(match[1]), end: match[2] ? Number(match[2]) : undefined };
+    return {
+      start: Number(match[1]),
+      end: match[2] ? Number(match[2]) : undefined,
+    };
   }
 
   private maskEmail(email: string) {

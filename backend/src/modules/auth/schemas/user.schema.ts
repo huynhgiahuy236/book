@@ -26,7 +26,8 @@ export class User {
 
   @Prop({ type: String, default: null }) avatarUrl!: string | null;
   @Prop({ default: false }) emailVerified!: boolean;
-  @Prop({ default: 'ACTIVE', enum: ['ACTIVE', 'LOCKED'] }) status!: 'ACTIVE' | 'LOCKED';
+  @Prop({ default: 'ACTIVE', enum: ['ACTIVE', 'LOCKED'] }) status!:
+    'ACTIVE' | 'LOCKED';
 
   @Prop({ default: 'USER', enum: ['USER', 'ADMIN'] })
   role!: 'USER' | 'ADMIN';

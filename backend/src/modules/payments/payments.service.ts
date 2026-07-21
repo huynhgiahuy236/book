@@ -30,32 +30,47 @@ export class PaymentsService {
     const clientId = config.get<string>('PAYOS_CLIENT_ID');
     const apiKey = config.get<string>('PAYOS_API_KEY');
     const checksumKey = config.get<string>('PAYOS_CHECKSUM_KEY');
-    this.payOS = config.get<boolean>('PAYOS_ENABLED', true) && clientId && apiKey && checksumKey
-      ? new PayOS({ clientId, apiKey, checksumKey })
-      : null;
+    this.payOS =
+      config.get<boolean>('PAYOS_ENABLED', true) &&
+      clientId &&
+      apiKey &&
+      checksumKey
+        ? new PayOS({ clientId, apiKey, checksumKey })
+        : null;
   }
 
   async create(dto: CreatePaymentDto, user: AuthUser) {
     this.limiter.hit('payment', user.sub, 8, 60_000);
-    if (!this.payOS) throw new BadRequestException('PayOS chưa được cấu hình trên máy chủ');
+    if (!this.payOS)
+      throw new BadRequestException('PayOS chưa được cấu hình trên máy chủ');
     if (dto.clientRequestId) {
-      const existing = await this.orders.findOne({ clientRequestId: dto.clientRequestId, userId: user.sub }).lean();
-      if (existing) return {
-        checkoutUrl: existing.checkoutUrl,
-        internalOrderId: String(existing._id),
-        orderCode: existing.orderCode,
-        reused: true,
-      };
+      const existing = await this.orders
+        .findOne({ clientRequestId: dto.clientRequestId, userId: user.sub })
+        .lean();
+      if (existing)
+        return {
+          checkoutUrl: existing.checkoutUrl,
+          internalOrderId: String(existing._id),
+          orderCode: existing.orderCode,
+          reused: true,
+        };
     }
     const books = await this.books.findMany(dto.bookIds);
     if (books.some((book) => book.format !== 'EBOOK')) {
-      throw new BadRequestException('Endpoint PayOS hiện chỉ nhận đơn Ebook; sách bản cứng cần luồng giao hàng riêng');
+      throw new BadRequestException(
+        'Endpoint PayOS hiện chỉ nhận đơn Ebook; sách bản cứng cần luồng giao hàng riêng',
+      );
     }
     const owned = await Promise.all(
-      books.map(async (book) => ({ book, owned: await this.library.hasRight(user.sub, book.id) })),
+      books.map(async (book) => ({
+        book,
+        owned: await this.library.hasRight(user.sub, book.id),
+      })),
     );
     if (owned.some((item) => item.owned)) {
-      throw new BadRequestException('Một hoặc nhiều ebook đã có trong thư viện của bạn');
+      throw new BadRequestException(
+        'Một hoặc nhiều ebook đã có trong thư viện của bạn',
+      );
     }
     const amount = books.reduce((sum, book) => sum + book.price, 0);
     const orderCode = await this.nextOrderCode();
@@ -109,7 +124,8 @@ export class PaymentsService {
   }
 
   async verifyWebhook(payload: Webhook) {
-    if (!this.payOS) throw new BadRequestException('PayOS chưa được cấu hình trên máy chủ');
+    if (!this.payOS)
+      throw new BadRequestException('PayOS chưa được cấu hình trên máy chủ');
     const data = await this.payOS.webhooks.verify(payload);
     const order = await this.orders.findOne({ orderCode: data.orderCode });
     if (!order) throw new NotFoundException('Không tìm thấy đơn hàng');
@@ -169,7 +185,9 @@ export class PaymentsService {
   }
 
   async status(orderCode: number, user: AuthUser) {
-    const order = await this.orders.findOne({ orderCode, userId: user.sub }).lean();
+    const order = await this.orders
+      .findOne({ orderCode, userId: user.sub })
+      .lean();
     if (!order) throw new NotFoundException('Không tìm thấy đơn hàng của bạn');
     return {
       orderCode: order.orderCode,

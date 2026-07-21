@@ -83,8 +83,10 @@ export function ProtectedReader({ bookId }: { bookId: string }) {
   }, [fitMode, pageNumber, pdf, scale]);
 
   useEffect(() => {
-    void renderPage().catch((error) => { setMessage(error instanceof Error ? error.message : "Không thể dựng trang PDF"); setStatus("error"); });
-    return () => renderTaskRef.current?.cancel();
+    const frame = window.requestAnimationFrame(() => {
+      void renderPage().catch((error) => { setMessage(error instanceof Error ? error.message : "Không thể dựng trang PDF"); setStatus("error"); });
+    });
+    return () => { window.cancelAnimationFrame(frame); renderTaskRef.current?.cancel(); };
   }, [renderPage]);
   useEffect(() => {
     if (!pdf || status !== "ready") return;

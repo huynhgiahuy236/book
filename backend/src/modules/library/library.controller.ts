@@ -1,4 +1,13 @@
-import { Body, Controller, Get, Param, Patch, Req, Res, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  Param,
+  Patch,
+  Req,
+  Res,
+  UseGuards,
+} from '@nestjs/common';
 import type { Request, Response } from 'express';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import type { AuthUser } from '../auth/types/auth-user.type';
@@ -28,7 +37,11 @@ export class LibraryController {
     @Req() request: Request,
     @Res() response: Response,
   ) {
-    const result = await this.library.openContent(user, bookId, request.headers.range);
+    const result = await this.library.openContent(
+      user,
+      bookId,
+      request.headers.range,
+    );
     response.status(result.partial ? 206 : 200);
     response.set({
       'Accept-Ranges': 'bytes',
@@ -37,7 +50,9 @@ export class LibraryController {
       'Content-Length': String(result.object.contentLength),
       'Content-Disposition': 'inline',
       ...(result.partial
-        ? { 'Content-Range': `bytes ${result.object.start}-${result.object.end}/${result.object.size}` }
+        ? {
+            'Content-Range': `bytes ${result.object.start}-${result.object.end}/${result.object.size}`,
+          }
         : {}),
     });
     result.object.stream.pipe(response);

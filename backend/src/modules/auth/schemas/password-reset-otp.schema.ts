@@ -9,5 +9,6 @@ export class PasswordResetOtp {
   @Prop({ type: Date, default: null }) consumedAt!: Date | null;
 }
 
-export const PasswordResetOtpSchema = SchemaFactory.createForClass(PasswordResetOtp);
+export const PasswordResetOtpSchema =
+  SchemaFactory.createForClass(PasswordResetOtp);
 PasswordResetOtpSchema.index({ email: 1 }, { unique: true });

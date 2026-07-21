@@ -1,4 +1,8 @@
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { createReadStream } from 'node:fs';
 import { stat } from 'node:fs/promises';
@@ -10,11 +14,19 @@ export class LocalBookStorageProvider implements BookStorage {
   private readonly root: string;
 
   constructor(config: ConfigService) {
-    const configured = config.get<string>('BOOK_STORAGE_ROOT', 'storage/private/ebooks');
-    this.root = isAbsolute(configured) ? resolve(configured) : resolve(process.cwd(), configured);
+    const configured = config.get<string>(
+      'BOOK_STORAGE_ROOT',
+      'storage/private/ebooks',
+    );
+    this.root = isAbsolute(configured)
+      ? resolve(configured)
+      : resolve(process.cwd(), configured);
   }
 
-  async open(objectKey: string, range?: { start: number; end?: number }): Promise<StoredBookObject> {
+  async open(
+    objectKey: string,
+    range?: { start: number; end?: number },
+  ): Promise<StoredBookObject> {
     const normalizedKey = objectKey.replaceAll('\\', '/').replace(/^\/+/, '');
     const filePath = resolve(this.root, normalizedKey);
     const fromRoot = relative(this.root, filePath);

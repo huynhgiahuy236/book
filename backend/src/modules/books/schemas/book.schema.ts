@@ -26,7 +26,11 @@ export class Book {
     'EBOOK' | 'PHYSICAL';
   @Prop({ enum: ['FREE', 'PREMIUM', 'PURCHASE'], default: 'PURCHASE' })
   accessType!: 'FREE' | 'PREMIUM' | 'PURCHASE';
-  @Prop({ enum: ['ACTIVE', 'DRAFT', 'ARCHIVED'], default: 'ACTIVE', index: true })
+  @Prop({
+    enum: ['ACTIVE', 'DRAFT', 'ARCHIVED'],
+    default: 'ACTIVE',
+    index: true,
+  })
   status!: 'ACTIVE' | 'DRAFT' | 'ARCHIVED';
   @Prop({ default: false }) readingEnabled!: boolean;
   @Prop({ default: false }) premium!: boolean;

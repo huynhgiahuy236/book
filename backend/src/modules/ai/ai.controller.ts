@@ -8,9 +8,15 @@ import { RateLimitService } from '../auth/rate-limit.service';
 
 @Controller('ai')
 export class AiController {
-  constructor(private readonly ai: AiService, private readonly limiter: RateLimitService) {}
+  constructor(
+    private readonly ai: AiService,
+    private readonly limiter: RateLimitService,
+  ) {}
 
   @Post('chat')
   @UseGuards(JwtAuthGuard)
-  chat(@Body() dto: ChatDto, @CurrentUser() user: AuthUser) { this.limiter.hit('ai', user.sub, 15, 60_000); return this.ai.chat(dto.message); }
+  chat(@Body() dto: ChatDto, @CurrentUser() user: AuthUser) {
+    this.limiter.hit('ai', user.sub, 15, 60_000);
+    return this.ai.chat(dto.message);
+  }
 }

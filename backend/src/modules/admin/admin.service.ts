@@ -16,12 +16,27 @@ export class AdminService {
 
   async dashboard() {
     const [users, books, orders, revenue, recentOrders] = await Promise.all([
-      this.users.countDocuments(), this.books.countDocuments({ status: { $ne: 'ARCHIVED' } }),
+      this.users.countDocuments(),
+      this.books.countDocuments({ status: { $ne: 'ARCHIVED' } }),
       this.orders.countDocuments(),
-      this.orders.aggregate<{ total: number }>([{ $match: { status: 'PAID' } }, { $group: { _id: null, total: { $sum: '$amount' } } }]),
-      this.orders.find().sort({ createdAt: -1 }).limit(8).select('orderCode amount status provider createdAt').lean(),
+      this.orders.aggregate<{ total: number }>([
+        { $match: { status: 'PAID' } },
+        { $group: { _id: null, total: { $sum: '$amount' } } },
+      ]),
+      this.orders
+        .find()
+        .sort({ createdAt: -1 })
+        .limit(8)
+        .select('orderCode amount status provider createdAt')
+        .lean(),
     ]);
-    return { users, books, orders, revenue: revenue[0]?.total ?? 0, recentOrders };
+    return {
+      users,
+      books,
+      orders,
+      revenue: revenue[0]?.total ?? 0,
+      recentOrders,
+    };
   }
 
   listBooks() {
@@ -31,13 +46,25 @@ export class AdminService {
   async updateBook(id: string, dto: UpdateAdminBookDto) {
     const updates: Record<string, unknown> = { ...dto };
     if (dto.ebookPrice !== undefined) updates.price = dto.ebookPrice;
-    const book = await this.books.findOneAndUpdate({ $or: [{ id }, { slug: id }] }, { $set: updates }, { new: true }).lean();
+    const book = await this.books
+      .findOneAndUpdate(
+        { $or: [{ id }, { slug: id }] },
+        { $set: updates },
+        { new: true },
+      )
+      .lean();
     if (!book) throw new NotFoundException('Không tìm thấy sách');
     return book;
   }
 
   async archiveBook(id: string) {
-    const book = await this.books.findOneAndUpdate({ $or: [{ id }, { slug: id }] }, { $set: { status: 'ARCHIVED', readingEnabled: false } }, { new: true }).lean();
+    const book = await this.books
+      .findOneAndUpdate(
+        { $or: [{ id }, { slug: id }] },
+        { $set: { status: 'ARCHIVED', readingEnabled: false } },
+        { new: true },
+      )
+      .lean();
     if (!book) throw new NotFoundException('Không tìm thấy sách');
     return { success: true, id: book.id };
   }

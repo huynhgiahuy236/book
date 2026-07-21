@@ -8,5 +8,17 @@ import { EngagementService } from './engagement.service';
 import { Favorite, FavoriteSchema } from './schemas/favorite.schema';
 import { Review, ReviewSchema } from './schemas/review.schema';
 
-@Module({ imports: [AuthModule, BooksModule, LibraryModule, MongooseModule.forFeature([{ name: Favorite.name, schema: FavoriteSchema }, { name: Review.name, schema: ReviewSchema }])], controllers: [EngagementController], providers: [EngagementService] })
+@Module({
+  imports: [
+    AuthModule,
+    BooksModule,
+    LibraryModule,
+    MongooseModule.forFeature([
+      { name: Favorite.name, schema: FavoriteSchema },
+      { name: Review.name, schema: ReviewSchema },
+    ]),
+  ],
+  controllers: [EngagementController],
+  providers: [EngagementService],
+})
 export class EngagementModule {}

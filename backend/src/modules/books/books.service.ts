@@ -17,7 +17,8 @@ export class BooksService implements OnModuleInit {
             $set: {
               ...book,
               slug: book.slug ?? book.id,
-              accessType: book.accessType ?? (book.premium ? 'PREMIUM' : 'PURCHASE'),
+              accessType:
+                book.accessType ?? (book.premium ? 'PREMIUM' : 'PURCHASE'),
               status: book.status ?? 'ACTIVE',
               readingEnabled: book.readingEnabled ?? false,
               ebookPrice: book.format === 'EBOOK' ? book.price : 0,
@@ -32,7 +33,10 @@ export class BooksService implements OnModuleInit {
   }
 
   async findAll() {
-    return this.books.find({ status: { $ne: 'ARCHIVED' } }).sort({ createdAt: 1 }).lean();
+    return this.books
+      .find({ status: { $ne: 'ARCHIVED' } })
+      .sort({ createdAt: 1 })
+      .lean();
   }
 
   async findAllPublic() {
@@ -44,7 +48,9 @@ export class BooksService implements OnModuleInit {
   }
 
   async findOne(id: string) {
-    const book = await this.books.findOne({ $or: [{ id }, { slug: id }] }).lean();
+    const book = await this.books
+      .findOne({ $or: [{ id }, { slug: id }] })
+      .lean();
     if (!book) throw new NotFoundException('Không tìm thấy sách');
     return book;
   }
@@ -57,8 +63,15 @@ export class BooksService implements OnModuleInit {
     return uniqueIds.map((id) => books.find((book) => book.id === id)!);
   }
 
-  async updateRating(id: string, averageRating: number | null, ratingsCount: number) {
-    await this.books.updateOne({ id }, { $set: { averageRating, ratingsCount } });
+  async updateRating(
+    id: string,
+    averageRating: number | null,
+    ratingsCount: number,
+  ) {
+    await this.books.updateOne(
+      { id },
+      { $set: { averageRating, ratingsCount } },
+    );
   }
 
   toPublic<T extends { ebookFile?: unknown }>(book: T) {

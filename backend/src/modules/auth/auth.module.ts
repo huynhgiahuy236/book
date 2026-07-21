@@ -7,7 +7,10 @@ import { AuthService } from './auth.service';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import { User, UserSchema } from './schemas/user.schema';
 import { AuthSession, AuthSessionSchema } from './schemas/auth-session.schema';
-import { PasswordResetOtp, PasswordResetOtpSchema } from './schemas/password-reset-otp.schema';
+import {
+  PasswordResetOtp,
+  PasswordResetOtpSchema,
+} from './schemas/password-reset-otp.schema';
 import { MailService } from './mail.service';
 import { AdminGuard } from './guards/admin.guard';
 import { RateLimitService } from './rate-limit.service';
@@ -33,7 +36,13 @@ import { RateLimitService } from './rate-limit.service';
     }),
   ],
   controllers: [AuthController],
-  providers: [AuthService, JwtAuthGuard, AdminGuard, RateLimitService, MailService],
+  providers: [
+    AuthService,
+    JwtAuthGuard,
+    AdminGuard,
+    RateLimitService,
+    MailService,
+  ],
   exports: [AuthService, JwtAuthGuard, AdminGuard, RateLimitService, JwtModule],
 })
 export class AuthModule {}
