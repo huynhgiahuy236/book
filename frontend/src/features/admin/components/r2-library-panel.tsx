@@ -58,7 +58,7 @@ export function R2LibraryPanel() {
     }
   };
   useEffect(() => {
-    void load();
+    void Promise.resolve().then(load);
   }, []);
   const books = useMemo(
     () =>
@@ -186,7 +186,7 @@ export function R2LibraryPanel() {
             {data.items.length === 0 ? (
               <div className="r2-empty">
                 <FileQuestion />
-                <strong>Chưa có PDF trong prefix ebooks/</strong>
+                <strong>Chưa có PDF trong folder ebooks/</strong>
               </div>
             ) : (
               data.items.map((item) => (

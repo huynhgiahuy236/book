@@ -7,6 +7,7 @@ import { Order, OrderSchema } from '../payments/schemas/order.schema';
 import { AdminController } from './admin.controller';
 import { AdminService } from './admin.service';
 import { StorageModule } from '../storage/storage.module';
+import { CloudinaryCoverService } from './cloudinary-cover.service';
 
 @Module({
   imports: [
@@ -19,6 +20,6 @@ import { StorageModule } from '../storage/storage.module';
     ]),
   ],
   controllers: [AdminController],
-  providers: [AdminService],
+  providers: [AdminService, CloudinaryCoverService],
 })
 export class AdminModule {}

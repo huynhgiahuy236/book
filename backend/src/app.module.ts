@@ -58,6 +58,10 @@ import { EngagementModule } from './modules/engagement/engagement.module';
           .falsy('false')
           .default(false),
         MAX_EBOOK_SIZE_MB: Joi.number().positive().default(50),
+        MAX_IMAGE_SIZE_MB: Joi.number().positive().default(8),
+        CLOUDINARY_CLOUD_NAME: Joi.string().required(),
+        CLOUDINARY_API_KEY: Joi.string().required(),
+        CLOUDINARY_API_SECRET: Joi.string().required(),
         EMAIL_ENABLED: Joi.boolean()
           .truthy('true')
           .falsy('false')
@@ -70,10 +74,7 @@ import { EngagementModule } from './modules/engagement/engagement.module';
         GMAIL_REFRESH_TOKEN: Joi.string().allow('').optional(),
         GMAIL_SENDER_EMAIL: Joi.string().email().allow('').optional(),
         MAIL_FROM_NAME: Joi.string().default('CapstoneBook'),
-        AI_ENABLED: Joi.boolean()
-          .truthy('true')
-          .falsy('false')
-          .default(false),
+        AI_ENABLED: Joi.boolean().truthy('true').falsy('false').default(false),
         AI_PROVIDER: Joi.string().valid('openai').default('openai'),
         OPENAI_API_KEY: Joi.string().allow('').optional(),
         OPENAI_MODEL: Joi.string().default('gpt-4.1-mini'),

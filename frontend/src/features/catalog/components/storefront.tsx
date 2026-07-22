@@ -1,11 +1,12 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   ArrowRight,
   BookOpen,
   Check,
+  ChevronLeft,
   ChevronRight,
   Eye,
   Heart,
@@ -34,6 +35,10 @@ export function Storefront() {
   const [catalog, setCatalog] = useState<Book[]>(fallbackBooks);
   const [category, setCategory] = useState("Tất cả");
   const [query, setQuery] = useState("");
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalItems, setTotalItems] = useState(0);
+  const [featuredOnline, setFeaturedOnline] = useState<Book[]>([]);
   const [cart, setCart] = useState<Book[]>([]);
   const [cartOpen, setCartOpen] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
@@ -74,13 +79,30 @@ export function Storefront() {
           .catch(() => undefined);
       }
     });
-    void api<ApiBook[]>("/books")
-      .then((items) => {
-        if (!items.length) return;
-        setCatalog(items.map(bookFromApi));
-      })
-      .catch(() => undefined);
   }, []);
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => {
+      const params = new URLSearchParams({ page: String(page), limit: "10" });
+      if (query.trim()) params.set("query", query.trim());
+      if (category !== "Tất cả") params.set("category", category);
+      void api<{ items: ApiBook[]; totalPages: number; totalItems: number }>(
+        `/books?${params}`,
+      )
+        .then((result) => {
+          const items = result.items.map(bookFromApi);
+          setCatalog(items);
+          setTotalPages(result.totalPages);
+          setTotalItems(result.totalItems);
+          if (page === 1 && category === "Tất cả" && !query.trim())
+            setFeaturedOnline(
+              items.filter((book) => book.isReadableOnline).slice(0, 2),
+            );
+        })
+        .catch(() => undefined);
+    }, 300);
+    return () => window.clearTimeout(timer);
+  }, [category, page, query]);
 
   useEffect(() => {
     if (!selectedBook) return;
@@ -118,23 +140,8 @@ export function Storefront() {
     };
   }, [selectedBook]);
 
-  const filtered = useMemo(
-    () =>
-      catalog.filter((book) => {
-        const inCategory = category === "Tất cả" || book.category === category;
-        const q = query.trim().toLocaleLowerCase("vi");
-        return (
-          inCategory &&
-          (!q ||
-            `${book.title} ${book.author}`.toLocaleLowerCase("vi").includes(q))
-        );
-      }),
-    [catalog, category, query],
-  );
-  const onlineBooks = useMemo(
-    () => catalog.filter((book) => book.isReadableOnline).slice(0, 2),
-    [catalog],
-  );
+  const filtered = catalog;
+  const onlineBooks = featuredOnline;
   const canRead = (book: Book) =>
     Boolean(
       user &&
@@ -247,7 +254,10 @@ export function Storefront() {
             <Search size={18} />
             <input
               value={query}
-              onChange={(event) => setQuery(event.target.value)}
+              onChange={(event) => {
+                setQuery(event.target.value);
+                setPage(1);
+              }}
               placeholder="Tìm sách, tác giả..."
               aria-label="Tìm sách"
             />
@@ -411,7 +421,10 @@ export function Storefront() {
               <button
                 key={item}
                 className={category === item ? "active" : ""}
-                onClick={() => setCategory(item)}
+                onClick={() => {
+                  setCategory(item);
+                  setPage(1);
+                }}
               >
                 {item}
               </button>
@@ -429,84 +442,114 @@ export function Storefront() {
                 tuần này.
               </p>
             </div>
-            <span className="result-count">{filtered.length} tựa sách</span>
+            <span className="result-count">{totalItems} tựa sách</span>
           </div>
           {filtered.length ? (
-            <div className="book-grid">
-              {filtered.map((book) => (
-                <article className="book-card" key={book.id}>
-                  <div className="cover-wrap">
-                    <button
-                      className="book-preview-trigger"
-                      onClick={() => setSelectedBook(book)}
-                      aria-label={`Xem nhanh chi tiết ${book.title}`}
-                    >
-                      <BookCover book={book} />
-                      <span>
-                        <Info size={16} /> Xem chi tiết
-                      </span>
-                    </button>
-                    <button
-                      className={`favorite ${favorites.includes(book.id) ? "active" : ""}`}
-                      onClick={() => void toggleFavorite(book.id)}
-                      aria-label={
-                        favorites.includes(book.id)
-                          ? "Bỏ khỏi yêu thích"
-                          : "Thêm vào yêu thích"
-                      }
-                    >
-                      <Heart
-                        size={18}
-                        fill={
-                          favorites.includes(book.id) ? "currentColor" : "none"
-                        }
-                      />
-                    </button>
-                    {book.premium && (
-                      <span className="premium-badge">
-                        <Sparkles size={12} /> Premium
-                      </span>
-                    )}
-                  </div>
-                  <div className="book-info">
-                    <div className="book-meta">
-                      <span>{book.format}</span>
-                      <span>
-                        <Star size={13} fill="currentColor" />{" "}
-                        {book.rating || "Mới"}
-                      </span>
-                    </div>
-                    <h3>
+            <>
+              <div className="book-grid">
+                {filtered.map((book) => (
+                  <article className="book-card" key={book.id}>
+                    <div className="cover-wrap">
                       <button
-                        className="book-title-button"
+                        className="book-preview-trigger"
                         onClick={() => setSelectedBook(book)}
+                        aria-label={`Xem nhanh chi tiết ${book.title}`}
                       >
-                        {book.title}
+                        <BookCover book={book} />
+                        <span>
+                          <Info size={16} /> Xem chi tiết
+                        </span>
                       </button>
-                    </h3>
-                    <p>{book.author}</p>
-                    {book.isReadableOnline && (
-                      <Link className="sample-read-link" href={readHref(book)}>
-                        <Eye size={16} />
-                        {readCta(book)}
-                      </Link>
-                    )}
-                    <div className="book-buy">
-                      <div>
-                        <strong>{money(book.price)}</strong>
-                        {book.oldPrice && <del>{money(book.oldPrice)}</del>}
-                      </div>
                       <button
-                        onClick={() => addToCart(book)}
-                        aria-label={`Thêm ${book.title} vào giỏ`}
+                        className={`favorite ${favorites.includes(book.id) ? "active" : ""}`}
+                        onClick={() => void toggleFavorite(book.id)}
+                        aria-label={
+                          favorites.includes(book.id)
+                            ? "Bỏ khỏi yêu thích"
+                            : "Thêm vào yêu thích"
+                        }
                       >
-                        <ShoppingBag size={18} />
+                        <Heart
+                          size={18}
+                          fill={
+                            favorites.includes(book.id)
+                              ? "currentColor"
+                              : "none"
+                          }
+                        />
                       </button>
+                      {book.premium && (
+                        <span className="premium-badge">
+                          <Sparkles size={12} /> Premium
+                        </span>
+                      )}
                     </div>
-                  </div>
-                </article>
-              ))}
-            </div>
+                    <div className="book-info">
+                      <div className="book-meta">
+                        <span>{book.format}</span>
+                        <span>
+                          <Star size={13} fill="currentColor" />{" "}
+                          {book.rating || "Mới"}
+                        </span>
+                      </div>
+                      <h3>
+                        <button
+                          className="book-title-button"
+                          onClick={() => setSelectedBook(book)}
+                        >
+                          {book.title}
+                        </button>
+                      </h3>
+                      <p>{book.author}</p>
+                      {book.isReadableOnline && (
+                        <Link
+                          className="sample-read-link"
+                          href={readHref(book)}
+                        >
+                          <Eye size={16} />
+                          {readCta(book)}
+                        </Link>
+                      )}
+                      <div className="book-buy">
+                        <div>
+                          <strong>{money(book.price)}</strong>
+                          {book.oldPrice && <del>{money(book.oldPrice)}</del>}
+                        </div>
+                        <button
+                          onClick={() => addToCart(book)}
+                          aria-label={`Thêm ${book.title} vào giỏ`}
+                        >
+                          <ShoppingBag size={18} />
+                        </button>
+                      </div>
+                    </div>
+                  </article>
+                ))}
+              </div>
+              <nav className="catalog-pagination" aria-label="Phân trang sách">
+                <button
+                  disabled={page === 1}
+                  onClick={() => {
+                    setPage((value) => value - 1);
+                    document.querySelector("#books")?.scrollIntoView();
+                  }}
+                >
+                  <ChevronLeft size={17} /> Trước
+                </button>
+                <span>
+                  Trang <strong>{page}</strong> / {totalPages}
+                </span>
+                <button
+                  disabled={page >= totalPages}
+                  onClick={() => {
+                    setPage((value) => value + 1);
+                    document.querySelector("#books")?.scrollIntoView();
+                  }}
+                >
+                  Sau <ChevronRight size={17} />
+                </button>
+              </nav>
+            </>
           ) : (
             <div className="empty-state">
               <Search size={28} />
@@ -517,6 +560,7 @@ export function Storefront() {
                 onClick={() => {
                   setQuery("");
                   setCategory("Tất cả");
+                  setPage(1);
                 }}
               >
                 Xem tất cả sách

@@ -65,7 +65,7 @@ export function ProtectedReader({ bookId }: { bookId: string }) {
   const [pageNumber, setPageNumber] = useState(1);
   const [pageInput, setPageInput] = useState("1");
   const [scale, setScale] = useState(1);
-  const [fitMode, setFitMode] = useState<FitMode>("width");
+  const [fitMode, setFitMode] = useState<FitMode>("page");
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [rendering, setRendering] = useState(true);
   const [loadAttempt, setLoadAttempt] = useState(0);
@@ -77,10 +77,10 @@ export function ProtectedReader({ bookId }: { bookId: string }) {
   useEffect(() => {
     let cancelled = false;
     let loadingTask: PDFDocumentLoadingTask | null = null;
-    setStatus("loading");
-    setMessage("");
-
     const load = async () => {
+      await Promise.resolve();
+      setStatus("loading");
+      setMessage("");
       try {
         const payload = await api<ReaderPayload>(
           `/library/${encodeURIComponent(bookId)}/read`,
@@ -138,6 +138,7 @@ export function ProtectedReader({ bookId }: { bookId: string }) {
   }, [bookId, loadAttempt]);
 
   const renderPage = useCallback(async () => {
+    void resizeVersion;
     if (!pdf || !canvasRef.current || !stageRef.current) return;
     setRendering(true);
     const page = await pdf.getPage(pageNumber);
@@ -191,7 +192,8 @@ export function ProtectedReader({ bookId }: { bookId: string }) {
   useEffect(() => {
     const onResize = () => setResizeVersion((value) => value + 1);
     window.addEventListener("resize", onResize);
-    if (window.matchMedia("(max-width: 900px)").matches) setSidebarOpen(false);
+    if (window.matchMedia("(max-width: 900px)").matches)
+      void Promise.resolve().then(() => setSidebarOpen(false));
     return () => window.removeEventListener("resize", onResize);
   }, []);
 
@@ -245,8 +247,10 @@ export function ProtectedReader({ bookId }: { bookId: string }) {
 
   useEffect(() => {
     if (!pdf || status !== "ready") return;
-    setSaveStatus("saving");
-    const timer = window.setTimeout(() => void saveProgress(), 800);
+    const timer = window.setTimeout(() => {
+      setSaveStatus("saving");
+      void saveProgress();
+    }, 800);
     return () => window.clearTimeout(timer);
   }, [pdf, pageNumber, saveProgress, status]);
 

@@ -3,6 +3,7 @@ import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { Book } from './schemas/book.schema';
 import { BOOKS } from './books.data';
+import { ListBooksDto } from './dto/list-books.dto';
 
 @Injectable()
 export class BooksService implements OnModuleInit {
@@ -36,17 +37,36 @@ export class BooksService implements OnModuleInit {
     return this.books.find({ status: 'ACTIVE' }).sort({ createdAt: 1 }).lean();
   }
 
-  async findAllPublic() {
-    return (await this.findAll())
+  async findAllPublic(dto: ListBooksDto) {
+    const filter: Record<string, unknown> = { status: 'ACTIVE' };
+    if (dto.query?.trim()) filter.$text = { $search: dto.query.trim() };
+    if (dto.category?.trim()) filter.categories = dto.category.trim();
+    const [books, totalItems] = await Promise.all([
+      this.books.find(filter).sort({ readingEnabled: -1, createdAt: 1 }).lean(),
+      this.books.countDocuments(filter),
+    ]);
+    const ordered = books
       .map((book) => this.toPublic(book))
       .sort(
         (left, right) =>
           Number(right.isReadableOnline) - Number(left.isReadableOnline),
       );
+    const start = (dto.page - 1) * dto.limit;
+    return {
+      items: ordered.slice(start, start + dto.limit),
+      page: dto.page,
+      limit: dto.limit,
+      totalItems,
+      totalPages: Math.max(1, Math.ceil(totalItems / dto.limit)),
+    };
   }
 
   async findOnePublic(id: string) {
-    return this.toPublic(await this.findOne(id));
+    const book = await this.books
+      .findOne({ status: 'ACTIVE', $or: [{ id }, { slug: id }] })
+      .lean();
+    if (!book) throw new NotFoundException('Không tìm thấy sách');
+    return this.toPublic(book);
   }
 
   async findOne(id: string) {

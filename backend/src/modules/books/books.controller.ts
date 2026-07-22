@@ -1,13 +1,14 @@
-import { Controller, Get, Param } from '@nestjs/common';
+import { Controller, Get, Param, Query } from '@nestjs/common';
 import { BooksService } from './books.service';
+import { ListBooksDto } from './dto/list-books.dto';
 
 @Controller('books')
 export class BooksController {
   constructor(private readonly books: BooksService) {}
 
   @Get()
-  findAll() {
-    return this.books.findAllPublic();
+  findAll(@Query() query: ListBooksDto) {
+    return this.books.findAllPublic(query);
   }
 
   @Get(':id')

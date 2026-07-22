@@ -11,7 +11,9 @@ export class LinkPdfDto {
   @IsString()
   @MinLength(6)
   @MaxLength(1024)
-  @Matches(/^ebooks\/.+\.pdf$/i)
+  @Matches(
+    /^ebooks\/(?:[a-z0-9]+(?:-[a-z0-9]+)*\/)*[a-z0-9]+(?:-[a-z0-9]+)*\.pdf$/i,
+  )
   objectKey!: string;
 
   @IsOptional()

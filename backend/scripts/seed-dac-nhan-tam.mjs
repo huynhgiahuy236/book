@@ -16,7 +16,7 @@ try {
       $set: {
         ebookFile: {
           originalFileName: 'Dac Nhan Tam.pdf',
-          objectKey: 'ebooks/Dac Nhan Tam.pdf',
+          objectKey: 'ebooks/books/dac-nhan-tam.pdf',
           storageProvider: 'R2',
           mimeType: 'application/pdf',
           status: 'READY',

@@ -10,12 +10,14 @@ import {
   FileCheck2,
   FileUp,
   LibraryBig,
+  Pencil,
   RefreshCw,
   ShoppingBag,
   Users,
 } from "lucide-react";
 import { api } from "@/shared/lib/api";
 import { R2LibraryPanel } from "./r2-library-panel";
+import { BookEditor } from "./book-editor";
 
 type Dashboard = {
   users: number;
@@ -34,6 +36,11 @@ type AdminBook = {
   id: string;
   title: string;
   authors: string[];
+  description?: string;
+  categories?: string[];
+  publisher?: string;
+  language?: string;
+  coverUrl?: string;
   accessType: string;
   status: string;
   readingEnabled: boolean;
@@ -57,6 +64,7 @@ export function AdminDashboard() {
   const [error, setError] = useState("");
   const [uploading, setUploading] = useState<string | null>(null);
   const [notice, setNotice] = useState("");
+  const [editing, setEditing] = useState<AdminBook | null>(null);
   useEffect(() => {
     void Promise.all([
       api<Dashboard>("/admin/dashboard", {}, true),
@@ -267,6 +275,13 @@ export function AdminDashboard() {
                     </small>
                   )}
                   <div>
+                    <button
+                      type="button"
+                      className="admin-edit"
+                      onClick={() => setEditing(book)}
+                    >
+                      <Pencil size={16} /> Thông tin
+                    </button>
                     <label className="admin-upload">
                       <input
                         type="file"
@@ -317,6 +332,9 @@ export function AdminDashboard() {
           ))}
         </article>
       </section>
+      {editing && (
+        <BookEditor book={editing} onClose={() => setEditing(null)} />
+      )}
     </main>
   );
 }

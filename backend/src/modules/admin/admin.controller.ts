@@ -57,6 +57,30 @@ export class AdminController {
     return this.admin.archiveBook(id);
   }
 
+  @Post('books/:id/cover')
+  @UseInterceptors(
+    FileInterceptor('file', {
+      limits: { files: 1, fileSize: 12 * 1024 * 1024 },
+    }),
+  )
+  uploadCover(
+    @Param('id') id: string,
+    @UploadedFile()
+    file?: {
+      originalname: string;
+      mimetype: string;
+      size: number;
+      buffer: Buffer;
+    },
+  ) {
+    return this.admin.uploadCover(id, file);
+  }
+
+  @Post('books/:id/publish')
+  publishBook(@Param('id') id: string) {
+    return this.admin.publishBook(id);
+  }
+
   @Post('books/:id/pdf')
   @UseInterceptors(
     FileInterceptor('file', {

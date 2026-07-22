@@ -3,7 +3,9 @@ import {
   ConflictException,
   Inject,
   Injectable,
+  Logger,
   NotFoundException,
+  OnApplicationBootstrap,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { InjectModel } from '@nestjs/mongoose';
@@ -14,16 +16,43 @@ import { Order } from '../payments/schemas/order.schema';
 import { UpdateAdminBookDto } from './dto/update-admin-book.dto';
 import { BOOK_STORAGE, type BookStorage } from '../storage/book-storage.types';
 import { CreatePdfDraftDto, LinkPdfDto } from './dto/pdf-library.dto';
+import { CloudinaryCoverService } from './cloudinary-cover.service';
 
 @Injectable()
-export class AdminService {
+export class AdminService implements OnApplicationBootstrap {
+  private readonly logger = new Logger(AdminService.name);
   constructor(
     @InjectModel(User.name) private readonly users: Model<User>,
     @InjectModel(Book.name) private readonly books: Model<Book>,
     @InjectModel(Order.name) private readonly orders: Model<Order>,
     @Inject(BOOK_STORAGE) private readonly storage: BookStorage,
     private readonly config: ConfigService,
+    private readonly covers: CloudinaryCoverService,
   ) {}
+
+  async onApplicationBootstrap() {
+    try {
+      const objects = await this.storage.listPdfs('ebooks/');
+      for (const object of objects) {
+        if (
+          await this.books.exists({ 'ebookFile.objectKey': object.objectKey })
+        )
+          continue;
+        const slug = this.slugify(object.fileName.replace(/\.pdf$/i, ''));
+        const existing = await this.books.findOne({
+          $or: [{ id: slug }, { slug }],
+        });
+        if (existing) {
+          await this.linkPdf(existing.id, { objectKey: object.objectKey });
+        } else {
+          await this.createPdfDraft({ objectKey: object.objectKey, slug });
+        }
+      }
+    } catch (error) {
+      const reason = error instanceof Error ? error.message : 'unknown error';
+      this.logger.warn(`Không thể đồng bộ R2 lúc khởi động: ${reason}`);
+    }
+  }
 
   async dashboard() {
     const [users, books, orders, revenue, recentOrders] = await Promise.all([
@@ -79,6 +108,67 @@ export class AdminService {
       .lean();
     if (!book) throw new NotFoundException('Không tìm thấy sách');
     return { success: true, id: book.id };
+  }
+
+  async uploadCover(
+    id: string,
+    file?: {
+      originalname: string;
+      mimetype: string;
+      size: number;
+      buffer: Buffer;
+    },
+  ) {
+    if (!file) throw new BadRequestException('Vui lòng chọn ảnh bìa');
+    const maxBytes =
+      this.config.get<number>('MAX_IMAGE_SIZE_MB', 8) * 1024 * 1024;
+    if (file.size <= 0 || file.size > maxBytes)
+      throw new BadRequestException('Ảnh bìa vượt giới hạn dung lượng');
+    const signatures: Record<string, string[]> = {
+      'image/jpeg': ['ffd8ff'],
+      'image/png': ['89504e47'],
+      'image/webp': ['52494646'],
+    };
+    const expected = signatures[file.mimetype.toLowerCase()];
+    const signature = file.buffer.subarray(0, 4).toString('hex');
+    if (!expected?.some((prefix) => signature.startsWith(prefix)))
+      throw new BadRequestException('Chỉ nhận ảnh JPG, PNG hoặc WebP hợp lệ');
+    const book = await this.books.findOne({ $or: [{ id }, { slug: id }] });
+    if (!book) throw new NotFoundException('Không tìm thấy sách');
+    const previousId = book.coverPublicId;
+    const uploaded = await this.covers.upload(file.buffer, book.slug);
+    book.coverUrl = uploaded.secure_url;
+    book.coverPublicId = uploaded.public_id;
+    try {
+      await book.save();
+    } catch (error) {
+      await this.covers.delete(uploaded.public_id).catch(() => undefined);
+      throw error;
+    }
+    await this.covers.delete(previousId).catch(() => undefined);
+    return { success: true, coverUrl: book.coverUrl };
+  }
+
+  async publishBook(id: string) {
+    const book = await this.books.findOne({ $or: [{ id }, { slug: id }] });
+    if (!book) throw new NotFoundException('Không tìm thấy sách');
+    const missing = [
+      !book.title?.trim() && 'tiêu đề',
+      !book.authors?.length && 'tác giả',
+      !book.categories?.length && 'thể loại',
+      !book.description?.trim() && 'mô tả',
+      !book.coverUrl?.trim() && 'ảnh bìa',
+      !book.ebookFile || book.ebookFile.status !== 'READY'
+        ? 'PDF R2 sẵn sàng'
+        : '',
+    ].filter(Boolean);
+    if (missing.length)
+      throw new BadRequestException(`Chưa đủ thông tin: ${missing.join(', ')}`);
+    await this.storage.inspect(book.ebookFile!.objectKey);
+    book.status = 'ACTIVE';
+    book.readingEnabled = true;
+    await book.save();
+    return { success: true, bookId: book.id, status: 'ACTIVE' };
   }
 
   async pdfStatus(id: string) {
@@ -240,7 +330,7 @@ export class AdminService {
       slug,
       externalId: `R2-DRAFT-${slug}`,
       source: 'R2_ADMIN_DRAFT',
-      sourceUrl: '',
+      sourceUrl: 'internal:r2-admin-draft',
       title,
       subtitle: '',
       authors: [],
@@ -339,7 +429,7 @@ export class AdminService {
     if (!safeSlug)
       throw new BadRequestException('Slug sách không hợp lệ để lưu PDF');
 
-    const objectKey = `ebooks/${safeSlug}/${safeSlug}-${Date.now()}.pdf`;
+    const objectKey = `ebooks/${safeSlug}.pdf`;
     const previousKey = book.ebookFile?.objectKey;
     const uploaded = await this.storage.uploadPdf(objectKey, file.buffer);
     book.ebookFile = {

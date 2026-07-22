@@ -22,6 +22,35 @@
 .pdf-thumbnails {
   height: calc(100% - 58px);
   scrollbar-gutter: stable;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 14px;
+}
+.pdf-thumbnails > button:not(.pdf-page-gap) {
+  flex: 0 0 auto;
+  width: 100%;
+  min-height: 104px;
+  padding: 10px;
+  grid-template-columns: 62px minmax(0, 1fr);
+  align-items: center;
+  overflow: hidden;
+}
+.pdf-thumbnails .pdf-mini-page {
+  width: 60px;
+  min-width: 60px;
+  height: 84px;
+  aspect-ratio: auto;
+}
+.pdf-thumbnails .pdf-mini-page canvas {
+  width: 60px;
+  height: 84px;
+  object-fit: contain;
+  background: #fff;
+}
+.pdf-thumbnails > button small {
+  min-width: 0;
+  white-space: nowrap;
 }
 .pdf-stage {
   padding: 22px clamp(14px, 3vw, 42px);
@@ -29,6 +58,7 @@
 }
 .pdf-canvas-shell {
   max-width: 920px;
+  max-height: calc(100dvh - 126px);
   box-shadow: 0 20px 55px rgba(0, 0, 0, 0.38);
 }
 .pdf-watermarks span {

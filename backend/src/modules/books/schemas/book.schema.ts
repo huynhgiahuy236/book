@@ -19,6 +19,7 @@ export class Book {
   @Prop({ default: 'eng' }) language!: string;
   @Prop({ type: [String], default: [] }) categories!: string[];
   @Prop({ default: '' }) coverUrl!: string;
+  @Prop({ type: String, default: null }) coverPublicId!: string | null;
   @Prop({ default: '' }) previewUrl!: string;
   @Prop({ type: Number, default: null }) averageRating!: number | null;
   @Prop({ default: 0 }) ratingsCount!: number;
