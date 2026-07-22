@@ -178,8 +178,14 @@ export class AdminOpsService {
     if (
       ![
         'PROCESSING',
+        'PENDING_CONFIRMATION',
+        'READY_FOR_PICKUP',
+        'PICKING_UP',
         'SHIPPING',
+        'RETURNING',
+        'DELIVERED',
         'COMPLETED',
+        'AWAITING_REVIEW',
         'CANCELLED',
         'REFUNDED',
       ].includes(dto.status)
@@ -187,11 +193,33 @@ export class AdminOpsService {
       throw new BadRequestException('Trạng thái đơn hàng không hợp lệ');
     const order = await this.orders.findOne({ orderCode });
     if (!order) throw new NotFoundException('Không tìm thấy đơn hàng');
+    const transitions: Record<string, string[]> = {
+      PENDING_PAYMENT: ['PENDING_CONFIRMATION', 'CANCELLED'],
+      PAID: ['PENDING_CONFIRMATION', 'PROCESSING', 'CANCELLED', 'REFUNDED'],
+      PENDING_CONFIRMATION: ['READY_FOR_PICKUP', 'CANCELLED'],
+      READY_FOR_PICKUP: ['PICKING_UP', 'CANCELLED'],
+      PICKING_UP: ['SHIPPING', 'RETURNING'],
+      PROCESSING: ['READY_FOR_PICKUP', 'SHIPPING', 'CANCELLED', 'REFUNDED'],
+      SHIPPING: ['DELIVERED', 'RETURNING'],
+      RETURNING: ['CANCELLED', 'REFUNDED'],
+      DELIVERED: ['COMPLETED', 'AWAITING_REVIEW', 'REFUNDED'],
+      COMPLETED: ['AWAITING_REVIEW', 'REFUNDED'],
+      AWAITING_REVIEW: ['REFUNDED'],
+    };
+    if (!(transitions[order.status] ?? []).includes(dto.status))
+      throw new BadRequestException(
+        `Không thể chuyển đơn từ ${order.status} sang ${dto.status}`,
+      );
     const giftWasConsumed = [
       'PAID',
       'PROCESSING',
+      'READY_FOR_PICKUP',
+      'PICKING_UP',
       'SHIPPING',
+      'RETURNING',
+      'DELIVERED',
       'COMPLETED',
+      'AWAITING_REVIEW',
     ].includes(order.status);
     if (
       ['CANCELLED', 'REFUNDED'].includes(dto.status) &&

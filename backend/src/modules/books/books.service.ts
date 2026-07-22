@@ -42,7 +42,11 @@ export class BooksService implements OnModuleInit {
     if (dto.query?.trim()) filter.$text = { $search: dto.query.trim() };
     if (dto.category?.trim()) filter.categories = dto.category.trim();
     const [books, totalItems] = await Promise.all([
-      this.books.find(filter).sort({ readingEnabled: -1, createdAt: 1 }).lean(),
+      this.books
+        .find(filter)
+        .sort({ readingEnabled: -1, createdAt: 1 })
+        .populate('giftId', 'name description imageUrl type status')
+        .lean(),
       this.books.countDocuments(filter),
     ]);
     const ordered = books
@@ -64,6 +68,7 @@ export class BooksService implements OnModuleInit {
   async findOnePublic(id: string) {
     const book = await this.books
       .findOne({ status: 'ACTIVE', $or: [{ id }, { slug: id }] })
+      .populate('giftId', 'name description imageUrl type status')
       .lean();
     if (!book) throw new NotFoundException('Không tìm thấy sách');
     return this.toPublic(book);
@@ -101,12 +106,27 @@ export class BooksService implements OnModuleInit {
       ebookFile?: { status?: string } | null;
       readingEnabled?: boolean;
       status?: string;
+      hasGift?: boolean;
+      giftId?: unknown;
     },
   >(book: T) {
-    const { ebookFile, ...safe } = book;
+    const { ebookFile, giftId, ...safe } = book;
     const hasReadableContent = ebookFile?.status === 'READY';
+    const gift =
+      book.hasGift && giftId && typeof giftId === 'object'
+        ? (giftId as Record<string, unknown>)
+        : null;
     return {
       ...safe,
+      gift:
+        gift?.status === 'ACTIVE'
+          ? {
+              name: gift.name,
+              description: gift.description,
+              imageUrl: gift.imageUrl,
+              type: gift.type,
+            }
+          : null,
       hasReadableContent,
       isReadableOnline:
         hasReadableContent &&

@@ -693,6 +693,11 @@ export function Storefront() {
                     <Sparkles size={12} /> Premium
                   </span>
                 )}
+                {selectedBook.gift && (
+                  <span className="gift-badge">
+                    <Sparkles size={12} /> Có quà tặng
+                  </span>
+                )}
               </div>
               <h2 id="book-modal-title">{selectedBook.title}</h2>
               <p className="book-modal-author">
@@ -707,6 +712,18 @@ export function Storefront() {
                 {selectedBook.description ||
                   "Một tựa sách được tuyển chọn cho thư viện CapstoneBook, với thông tin xuất bản minh bạch và trải nghiệm mua hoặc đọc online liền mạch."}
               </p>
+              {selectedBook.gift && (
+                <div className="book-gift-callout">
+                  <Sparkles size={18} />
+                  <div>
+                    <strong>Quà tặng: {selectedBook.gift.name}</strong>
+                    <p>
+                      {selectedBook.gift.description ||
+                        "Quà tặng áp dụng theo chương trình của cuốn sách này."}
+                    </p>
+                  </div>
+                </div>
+              )}
               <dl className="book-modal-facts">
                 <div>
                   <dt>Nhà xuất bản</dt>

@@ -7,7 +7,11 @@ type BookCoverProps = {
   className?: string;
 };
 
-export function BookCover({ book, large = false, className = "" }: BookCoverProps) {
+export function BookCover({
+  book,
+  large = false,
+  className = "",
+}: BookCoverProps) {
   const background = book.coverUrl
     ? ({ backgroundImage: `url("${book.coverUrl}")` } as CSSProperties)
     : undefined;
@@ -20,7 +24,11 @@ export function BookCover({ book, large = false, className = "" }: BookCoverProp
       aria-label={`Bìa sách ${book.title}`}
     >
       <span className="cover-kicker">CAPSTONE EDITION</span>
-      <strong>{book.cover.split("\n").map((line) => <span key={line}>{line}</span>)}</strong>
+      <strong>
+        {book.cover.split("\n").map((line) => (
+          <span key={line}>{line}</span>
+        ))}
+      </strong>
       <small>{book.author}</small>
     </div>
   );

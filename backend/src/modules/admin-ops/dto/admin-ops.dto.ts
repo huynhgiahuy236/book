@@ -22,8 +22,14 @@ export class RightActionDto {
 export class StatusActionDto {
   @IsIn([
     'PROCESSING',
+    'PENDING_CONFIRMATION',
+    'READY_FOR_PICKUP',
+    'PICKING_UP',
     'SHIPPING',
+    'RETURNING',
+    'DELIVERED',
     'COMPLETED',
+    'AWAITING_REVIEW',
     'CANCELLED',
     'REFUNDED',
     'APPROVED',

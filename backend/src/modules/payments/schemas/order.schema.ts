@@ -33,9 +33,15 @@ export class Order {
     enum: [
       'PENDING_PAYMENT',
       'PAID',
+      'PENDING_CONFIRMATION',
+      'READY_FOR_PICKUP',
+      'PICKING_UP',
       'PROCESSING',
       'SHIPPING',
+      'RETURNING',
+      'DELIVERED',
       'COMPLETED',
+      'AWAITING_REVIEW',
       'CANCELLED',
       'EXPIRED',
       'FAILED',
@@ -46,9 +52,15 @@ export class Order {
   status!:
     | 'PENDING_PAYMENT'
     | 'PAID'
+    | 'PENDING_CONFIRMATION'
+    | 'READY_FOR_PICKUP'
+    | 'PICKING_UP'
     | 'PROCESSING'
     | 'SHIPPING'
+    | 'RETURNING'
+    | 'DELIVERED'
     | 'COMPLETED'
+    | 'AWAITING_REVIEW'
     | 'CANCELLED'
     | 'EXPIRED'
     | 'FAILED'

@@ -23,6 +23,12 @@ export type Book = {
   stock?: number;
   ebookPrice?: number;
   physicalPrice?: number;
+  gift?: {
+    name: string;
+    description?: string;
+    imageUrl?: string;
+    type: "PHYSICAL" | "DIGITAL";
+  } | null;
 };
 
 export type ApiBook = {
@@ -31,7 +37,7 @@ export type ApiBook = {
   authors: string[];
   price: number;
   categories: string[];
-  format: "EBOOK" | "PHYSICAL";
+  format: "EBOOK" | "PHYSICAL" | "BOTH";
   premium?: boolean;
   coverUrl?: string;
   averageRating?: number | null;
@@ -45,6 +51,12 @@ export type ApiBook = {
   stock?: number;
   ebookPrice?: number;
   physicalPrice?: number;
+  gift?: {
+    name: string;
+    description?: string;
+    imageUrl?: string;
+    type: "PHYSICAL" | "DIGITAL";
+  } | null;
 };
 
 const accents = [
@@ -127,6 +139,7 @@ export const bookFromApi = (book: ApiBook, index = 0): Book => ({
   stock: book.stock,
   ebookPrice: book.ebookPrice,
   physicalPrice: book.physicalPrice,
+  gift: book.gift,
 });
 
 export const money = (value: number) =>

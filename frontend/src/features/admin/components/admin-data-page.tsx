@@ -178,9 +178,25 @@ export function AdminDataPage({ kind }: { kind: keyof typeof configs }) {
               ))}
               <span className="row-actions">
                 {kind === "orders" && (
-                  <button onClick={() => void act(row, "CANCELLED")}>
-                    Hủy
-                  </button>
+                  <select
+                    aria-label="Cập nhật trạng thái đơn"
+                    defaultValue=""
+                    onChange={(event) => {
+                      if (event.target.value) void act(row, event.target.value);
+                      event.currentTarget.value = "";
+                    }}
+                  >
+                    <option value="">Cập nhật…</option>
+                    <option value="PENDING_CONFIRMATION">Chờ xác nhận</option>
+                    <option value="READY_FOR_PICKUP">Chờ lấy hàng</option>
+                    <option value="PICKING_UP">Đang lấy hàng</option>
+                    <option value="SHIPPING">Đang giao hàng</option>
+                    <option value="RETURNING">Chuyển hoàn / thất bại</option>
+                    <option value="DELIVERED">Đã giao</option>
+                    <option value="COMPLETED">Đã hoàn thành</option>
+                    <option value="AWAITING_REVIEW">Chờ đánh giá</option>
+                    <option value="CANCELLED">Đã hủy</option>
+                  </select>
                 )}
                 {kind === "users" && (
                   <button
