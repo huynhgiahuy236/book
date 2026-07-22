@@ -1,4 +1,5 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
+import { Types } from 'mongoose';
 
 @Schema({ timestamps: true, versionKey: false })
 export class Book {
@@ -13,6 +14,10 @@ export class Book {
   @Prop({ default: '' }) publisher!: string;
   @Prop({ type: String, default: null }) publishedDate!: string | null;
   @Prop({ default: '' }) description!: string;
+  @Prop({ default: '' }) giftDescription!: string;
+  @Prop({ default: false }) hasGift!: boolean;
+  @Prop({ type: Types.ObjectId, ref: 'Gift', default: null })
+  giftId!: Types.ObjectId | null;
   @Prop({ type: String, default: null }) isbn10!: string | null;
   @Prop({ type: String, default: null }) isbn13!: string | null;
   @Prop({ type: Number, default: null }) pageCount!: number | null;
@@ -23,8 +28,8 @@ export class Book {
   @Prop({ default: '' }) previewUrl!: string;
   @Prop({ type: Number, default: null }) averageRating!: number | null;
   @Prop({ default: 0 }) ratingsCount!: number;
-  @Prop({ enum: ['EBOOK', 'PHYSICAL'], default: 'EBOOK' }) format!:
-    'EBOOK' | 'PHYSICAL';
+  @Prop({ enum: ['EBOOK', 'PHYSICAL', 'BOTH'], default: 'EBOOK' }) format!:
+    'EBOOK' | 'PHYSICAL' | 'BOTH';
   @Prop({ enum: ['FREE', 'PREMIUM', 'PURCHASE'], default: 'PURCHASE' })
   accessType!: 'FREE' | 'PREMIUM' | 'PURCHASE';
   @Prop({

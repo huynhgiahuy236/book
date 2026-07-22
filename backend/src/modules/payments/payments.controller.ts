@@ -11,6 +11,7 @@ import type { Webhook } from '@payos/node/lib/resources/webhooks/webhook';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import type { AuthUser } from '../auth/types/auth-user.type';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { AdminGuard } from '../auth/guards/admin.guard';
 import { CreatePaymentDto } from './dto/create-payment.dto';
 import { PaymentsService } from './payments.service';
 
@@ -34,6 +35,12 @@ export class PaymentsController {
   @HttpCode(200)
   webhook(@Body() payload: Webhook) {
     return this.payments.verifyWebhook(payload);
+  }
+
+  @Get('admin/config-status')
+  @UseGuards(JwtAuthGuard, AdminGuard)
+  configStatus() {
+    return this.payments.configurationStatus();
   }
 
   @Post(':orderCode/demo-confirm')

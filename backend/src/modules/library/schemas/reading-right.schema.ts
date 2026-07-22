@@ -4,8 +4,9 @@ import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 export class ReadingRight {
   @Prop({ required: true, index: true }) userId!: string;
   @Prop({ required: true, index: true }) bookId!: string;
-  @Prop({ required: true, enum: ['PURCHASE', 'DEMO'] }) source!:
-    'PURCHASE' | 'DEMO';
+  @Prop({ required: true, enum: ['PURCHASE', 'DEMO', 'MANUAL'] }) source!:
+    'PURCHASE' | 'DEMO' | 'MANUAL';
+  @Prop({ default: '' }) reason!: string;
   @Prop() orderCode?: number;
   @Prop({ default: 'ACTIVE', enum: ['ACTIVE', 'REVOKED'] }) status!:
     'ACTIVE' | 'REVOKED';

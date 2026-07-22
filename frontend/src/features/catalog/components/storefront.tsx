@@ -83,7 +83,7 @@ export function Storefront() {
 
   useEffect(() => {
     const timer = window.setTimeout(() => {
-      const params = new URLSearchParams({ page: String(page), limit: "10" });
+      const params = new URLSearchParams({ page: String(page), limit: "12" });
       if (query.trim()) params.set("query", query.trim());
       if (category !== "Tất cả") params.set("category", category);
       void api<{ items: ApiBook[]; totalPages: number; totalItems: number }>(

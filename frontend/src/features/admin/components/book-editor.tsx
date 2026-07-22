@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState, type FormEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 import { CheckCircle2, ImagePlus, Save, Send, X } from "lucide-react";
 import { api } from "@/shared/lib/api";
 
@@ -8,6 +8,7 @@ export type EditableBook = {
   id: string;
   title: string;
   description?: string;
+  giftDescription?: string;
   authors: string[];
   categories?: string[];
   publisher?: string;
@@ -16,7 +17,11 @@ export type EditableBook = {
   accessType: string;
   status: string;
   coverUrl?: string;
+  hasGift?: boolean;
+  giftId?: string | null;
 };
+
+type GiftOption = { _id: string; name: string; stock: number; type: string };
 
 export function BookEditor({
   book,
@@ -30,6 +35,13 @@ export function BookEditor({
   const [error, setError] = useState("");
   const [saved, setSaved] = useState(false);
   const publishIntent = useRef(false);
+  const [gifts, setGifts] = useState<GiftOption[]>([]);
+  const [hasGift, setHasGift] = useState(Boolean(book.hasGift));
+  useEffect(() => {
+    void api<GiftOption[]>("/admin/gifts/active", {}, true)
+      .then(setGifts)
+      .catch(() => undefined);
+  }, []);
   const save = async (event: FormEvent<HTMLFormElement>, publish = false) => {
     event.preventDefault();
     setBusy(true);
@@ -44,6 +56,9 @@ export function BookEditor({
           body: JSON.stringify({
             title: values.title,
             description: values.description,
+            giftDescription: values.giftDescription,
+            hasGift: values.hasGift === "on",
+            giftId: values.hasGift === "on" ? values.giftId : null,
             authors: String(values.authors)
               .split(",")
               .map((v) => v.trim())
@@ -128,6 +143,40 @@ export function BookEditor({
                 rows={4}
               />
             </label>
+            <label className="wide">
+              <span>Quà tặng kèm</span>
+              <textarea
+                name="giftDescription"
+                defaultValue={book.giftDescription}
+                placeholder="Ví dụ: Tặng kèm bookmark"
+                rows={2}
+              />
+            </label>
+            <label className="wide editor-check">
+              <input
+                name="hasGift"
+                type="checkbox"
+                defaultChecked={book.hasGift}
+                onChange={(event) => setHasGift(event.target.checked)}
+              />
+              <span>Sách này có quà tặng</span>
+            </label>
+            {hasGift && (
+              <label className="wide">
+                <span>Chọn quà tặng đang hoạt động</span>
+                <select name="giftId" defaultValue={book.giftId ?? ""} required>
+                  <option value="">Chọn quà tặng</option>
+                  {gifts.map((gift) => (
+                    <option key={gift._id} value={gift._id}>
+                      {gift.name} ·{" "}
+                      {gift.type === "PHYSICAL"
+                        ? `${gift.stock} sản phẩm`
+                        : "Kỹ thuật số"}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            )}
             <label>
               <span>Thể loại</span>
               <input

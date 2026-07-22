@@ -17,6 +17,8 @@ import { UpdateAdminBookDto } from './dto/update-admin-book.dto';
 import { BOOK_STORAGE, type BookStorage } from '../storage/book-storage.types';
 import { CreatePdfDraftDto, LinkPdfDto } from './dto/pdf-library.dto';
 import { CloudinaryCoverService } from './cloudinary-cover.service';
+import { GiftsService } from '../gifts/gifts.service';
+import { ReadingRight } from '../library/schemas/reading-right.schema';
 
 @Injectable()
 export class AdminService implements OnApplicationBootstrap {
@@ -25,9 +27,12 @@ export class AdminService implements OnApplicationBootstrap {
     @InjectModel(User.name) private readonly users: Model<User>,
     @InjectModel(Book.name) private readonly books: Model<Book>,
     @InjectModel(Order.name) private readonly orders: Model<Order>,
+    @InjectModel(ReadingRight.name)
+    private readonly rights: Model<ReadingRight>,
     @Inject(BOOK_STORAGE) private readonly storage: BookStorage,
     private readonly config: ConfigService,
     private readonly covers: CloudinaryCoverService,
+    private readonly gifts: GiftsService,
   ) {}
 
   async onApplicationBootstrap() {
@@ -55,7 +60,16 @@ export class AdminService implements OnApplicationBootstrap {
   }
 
   async dashboard() {
-    const [users, books, orders, revenue, recentOrders] = await Promise.all([
+    const [
+      users,
+      books,
+      orders,
+      revenue,
+      recentOrders,
+      readingRights,
+      r2Files,
+      lowGifts,
+    ] = await Promise.all([
       this.users.countDocuments(),
       this.books.countDocuments({ status: { $ne: 'ARCHIVED' } }),
       this.orders.countDocuments(),
@@ -69,6 +83,9 @@ export class AdminService implements OnApplicationBootstrap {
         .limit(8)
         .select('orderCode amount status provider createdAt')
         .lean(),
+      this.rights.countDocuments({ status: 'ACTIVE' }),
+      this.storage.listPdfs('ebooks/'),
+      this.gifts.list({ page: 1, limit: 50, status: 'ACTIVE' }),
     ]);
     return {
       users,
@@ -76,6 +93,12 @@ export class AdminService implements OnApplicationBootstrap {
       orders,
       revenue: revenue[0]?.total ?? 0,
       recentOrders,
+      readingRights,
+      r2Files: r2Files.length,
+      lowStockGifts: lowGifts.items.filter(
+        (gift) =>
+          gift.type === 'PHYSICAL' && gift.stock <= gift.lowStockThreshold,
+      ).length,
     };
   }
 
@@ -86,6 +109,12 @@ export class AdminService implements OnApplicationBootstrap {
 
   async updateBook(id: string, dto: UpdateAdminBookDto) {
     const updates: Record<string, unknown> = { ...dto };
+    if (dto.hasGift) {
+      if (!dto.giftId) throw new BadRequestException('Hãy chọn quà tặng');
+      await this.gifts.requireActive(dto.giftId);
+    } else if (dto.hasGift === false) {
+      updates.giftId = null;
+    }
     if (dto.ebookPrice !== undefined) updates.price = dto.ebookPrice;
     const book = await this.books
       .findOneAndUpdate(
@@ -147,6 +176,25 @@ export class AdminService implements OnApplicationBootstrap {
     }
     await this.covers.delete(previousId).catch(() => undefined);
     return { success: true, coverUrl: book.coverUrl };
+  }
+
+  async uploadGiftImage(
+    id: string,
+    file?: {
+      originalname: string;
+      mimetype: string;
+      size: number;
+      buffer: Buffer;
+    },
+  ) {
+    if (
+      !file ||
+      !['image/jpeg', 'image/png', 'image/webp'].includes(file.mimetype)
+    )
+      throw new BadRequestException('Vui lòng chọn ảnh JPG, PNG hoặc WebP');
+    const gift = await this.gifts.requireActive(id);
+    const uploaded = await this.covers.upload(file.buffer, `gift-${gift.slug}`);
+    return this.gifts.setImage(id, uploaded.secure_url, uploaded.public_id);
   }
 
   async publishBook(id: string) {
@@ -336,6 +384,9 @@ export class AdminService implements OnApplicationBootstrap {
       authors: [],
       publisher: '',
       description: '',
+      giftDescription: '',
+      hasGift: false,
+      giftId: null,
       language: 'vie',
       categories: [],
       coverUrl: '',

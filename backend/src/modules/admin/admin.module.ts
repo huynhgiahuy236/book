@@ -8,15 +8,22 @@ import { AdminController } from './admin.controller';
 import { AdminService } from './admin.service';
 import { StorageModule } from '../storage/storage.module';
 import { CloudinaryCoverService } from './cloudinary-cover.service';
+import { GiftsModule } from '../gifts/gifts.module';
+import {
+  ReadingRight,
+  ReadingRightSchema,
+} from '../library/schemas/reading-right.schema';
 
 @Module({
   imports: [
     AuthModule,
     StorageModule,
+    GiftsModule,
     MongooseModule.forFeature([
       { name: User.name, schema: UserSchema },
       { name: Book.name, schema: BookSchema },
       { name: Order.name, schema: OrderSchema },
+      { name: ReadingRight.name, schema: ReadingRightSchema },
     ]),
   ],
   controllers: [AdminController],

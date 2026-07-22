@@ -14,6 +14,7 @@ import { BOOK_STORAGE, type BookStorage } from '../storage/book-storage.types';
 import { UpdateProgressDto } from './dto/update-progress.dto';
 import { ReadingProgress } from './schemas/reading-progress.schema';
 import { ReadingRight } from './schemas/reading-right.schema';
+import { PremiumService } from '../premium/premium.service';
 
 type ReadableBook = Awaited<ReturnType<BooksService['findOne']>>;
 
@@ -26,6 +27,7 @@ export class LibraryService {
     private readonly progress: Model<ReadingProgress>,
     private readonly books: BooksService,
     @Inject(BOOK_STORAGE) private readonly storage: BookStorage,
+    private readonly premium: PremiumService,
   ) {}
 
   async grant(
@@ -102,8 +104,10 @@ export class LibraryService {
 
   async access(user: AuthUser, bookId: string) {
     const book = await this.books.findOne(bookId);
+    const premiumAccess =
+      book.accessType === 'PREMIUM' && (await this.premium.hasActive(user.sub));
     const right =
-      user.role === 'ADMIN' || book.accessType === 'FREE'
+      user.role === 'ADMIN' || book.accessType === 'FREE' || premiumAccess
         ? null
         : await this.rights
             .findOne({
@@ -117,7 +121,9 @@ export class LibraryService {
         ? 'ADMIN'
         : book.accessType === 'FREE'
           ? 'FREE'
-          : right?.source;
+          : premiumAccess
+            ? 'PREMIUM'
+            : right?.source;
     const progress = await this.progress
       .findOne({ userId: user.sub, bookId: book.id })
       .lean();
@@ -222,6 +228,11 @@ export class LibraryService {
 
   private async assertRight(user: AuthUser, book: ReadableBook) {
     if (user.role === 'ADMIN' || book.accessType === 'FREE') return;
+    if (
+      book.accessType === 'PREMIUM' &&
+      (await this.premium.hasActive(user.sub))
+    )
+      return;
     if (!(await this.hasRight(user.sub, book.id))) {
       throw new ForbiddenException('Bạn chưa sở hữu quyền đọc cuốn sách này');
     }

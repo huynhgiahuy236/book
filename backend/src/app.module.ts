@@ -12,6 +12,11 @@ import { StorageModule } from './modules/storage/storage.module';
 import { AiModule } from './modules/ai/ai.module';
 import { AdminModule } from './modules/admin/admin.module';
 import { EngagementModule } from './modules/engagement/engagement.module';
+import { GiftsModule } from './modules/gifts/gifts.module';
+import { AuditModule } from './modules/audit/audit.module';
+import { PremiumModule } from './modules/premium/premium.module';
+import { ReturnsModule } from './modules/returns/returns.module';
+import { AdminOpsModule } from './modules/admin-ops/admin-ops.module';
 
 @Module({
   imports: [
@@ -98,6 +103,11 @@ import { EngagementModule } from './modules/engagement/engagement.module';
     AiModule,
     AdminModule,
     EngagementModule,
+    GiftsModule,
+    AuditModule,
+    PremiumModule,
+    ReturnsModule,
+    AdminOpsModule,
   ],
   controllers: [AppController],
   providers: [AppService],

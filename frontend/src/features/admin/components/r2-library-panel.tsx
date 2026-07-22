@@ -128,7 +128,11 @@ export function R2LibraryPanel() {
     }
   };
   return (
-    <section className="r2-panel" aria-labelledby="r2-panel-title">
+    <section
+      className="r2-panel"
+      id="r2-library"
+      aria-labelledby="r2-panel-title"
+    >
       <header>
         <div>
           <span className="eyebrow">

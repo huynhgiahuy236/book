@@ -6,12 +6,14 @@ import { LibraryModule } from '../library/library.module';
 import { Order, OrderSchema } from './schemas/order.schema';
 import { PaymentsController } from './payments.controller';
 import { PaymentsService } from './payments.service';
+import { GiftsModule } from '../gifts/gifts.module';
 
 @Module({
   imports: [
     AuthModule,
     BooksModule,
     LibraryModule,
+    GiftsModule,
     MongooseModule.forFeature([{ name: Order.name, schema: OrderSchema }]),
   ],
   controllers: [PaymentsController],

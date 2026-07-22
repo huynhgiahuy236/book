@@ -14,16 +14,23 @@ import {
   RefreshCw,
   ShoppingBag,
   Users,
+  KeyRound,
+  HardDrive,
 } from "lucide-react";
 import { api } from "@/shared/lib/api";
 import { R2LibraryPanel } from "./r2-library-panel";
 import { BookEditor } from "./book-editor";
+import { GiftManager } from "./gift-manager";
+import { AdminCharts } from "./admin-charts";
 
 type Dashboard = {
   users: number;
   books: number;
   orders: number;
   revenue: number;
+  readingRights: number;
+  r2Files: number;
+  lowStockGifts: number;
   recentOrders: Array<{
     _id: string;
     orderCode: number;
@@ -37,10 +44,13 @@ type AdminBook = {
   title: string;
   authors: string[];
   description?: string;
+  giftDescription?: string;
   categories?: string[];
   publisher?: string;
   language?: string;
   coverUrl?: string;
+  hasGift?: boolean;
+  giftId?: string | null;
   accessType: string;
   status: string;
   readingEnabled: boolean;
@@ -168,12 +178,15 @@ export function AdminDashboard() {
         </h1>
         <p>Dashboard đọc trực tiếp từ MongoDB, không dùng số liệu hard-code.</p>
       </section>
-      <section className="admin-metrics">
+      <AdminCharts />
+      <section className="admin-metrics" id="overview">
         {[
           [Users, "Người dùng", dashboard.users],
           [LibraryBig, "Đầu sách", dashboard.books],
           [ShoppingBag, "Đơn hàng", dashboard.orders],
           [CircleDollarSign, "Doanh thu", money(dashboard.revenue)],
+          [KeyRound, "Quyền đọc", dashboard.readingRights],
+          [HardDrive, "PDF R2", dashboard.r2Files],
         ].map(([Icon, label, value]) => {
           const MetricIcon = Icon as typeof Users;
           return (
@@ -198,7 +211,7 @@ export function AdminDashboard() {
         </div>
       )}
       <R2LibraryPanel />
-      <section className="admin-grid">
+      <section className="admin-grid" id="books">
         <article className="admin-panel">
           <header>
             <div>
@@ -332,6 +345,7 @@ export function AdminDashboard() {
           ))}
         </article>
       </section>
+      <GiftManager />
       {editing && (
         <BookEditor book={editing} onClose={() => setEditing(null)} />
       )}

@@ -14,6 +14,9 @@ import {
 export class UpdateAdminBookDto {
   @IsOptional() @IsString() @MinLength(2) @MaxLength(180) title?: string;
   @IsOptional() @IsString() @MaxLength(2000) description?: string;
+  @IsOptional() @IsString() @MaxLength(500) giftDescription?: string;
+  @IsOptional() @IsBoolean() hasGift?: boolean;
+  @IsOptional() @IsString() giftId?: string | null;
   @IsOptional() @IsArray() @IsString({ each: true }) authors?: string[];
   @IsOptional() @IsArray() @IsString({ each: true }) categories?: string[];
   @IsOptional() @IsString() @MaxLength(180) publisher?: string;

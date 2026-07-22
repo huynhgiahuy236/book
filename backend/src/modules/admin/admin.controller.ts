@@ -81,6 +81,25 @@ export class AdminController {
     return this.admin.publishBook(id);
   }
 
+  @Post('gifts/:id/image')
+  @UseInterceptors(
+    FileInterceptor('file', {
+      limits: { files: 1, fileSize: 12 * 1024 * 1024 },
+    }),
+  )
+  uploadGiftImage(
+    @Param('id') id: string,
+    @UploadedFile()
+    file?: {
+      originalname: string;
+      mimetype: string;
+      size: number;
+      buffer: Buffer;
+    },
+  ) {
+    return this.admin.uploadGiftImage(id, file);
+  }
+
   @Post('books/:id/pdf')
   @UseInterceptors(
     FileInterceptor('file', {

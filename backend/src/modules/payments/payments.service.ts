@@ -15,6 +15,7 @@ import { LibraryService } from '../library/library.service';
 import { CreatePaymentDto } from './dto/create-payment.dto';
 import { Order } from './schemas/order.schema';
 import { RateLimitService } from '../auth/rate-limit.service';
+import { GiftsService } from '../gifts/gifts.service';
 
 @Injectable()
 export class PaymentsService {
@@ -25,6 +26,7 @@ export class PaymentsService {
     private readonly books: BooksService,
     private readonly library: LibraryService,
     private readonly limiter: RateLimitService,
+    private readonly gifts: GiftsService,
     @InjectModel(Order.name) private readonly orders: Model<Order>,
   ) {
     const clientId = config.get<string>('PAYOS_CLIENT_ID');
@@ -56,7 +58,7 @@ export class PaymentsService {
         };
     }
     const books = await this.books.findMany(dto.bookIds);
-    if (books.some((book) => book.format !== 'EBOOK')) {
+    if (books.some((book) => !['EBOOK', 'BOTH'].includes(book.format))) {
       throw new BadRequestException(
         'Endpoint PayOS hiện chỉ nhận đơn Ebook; sách bản cứng cần luồng giao hàng riêng',
       );
@@ -73,6 +75,7 @@ export class PaymentsService {
       );
     }
     const amount = books.reduce((sum, book) => sum + book.price, 0);
+    const giftSnapshots = await this.gifts.snapshotsForBooks(books);
     const orderCode = await this.nextOrderCode();
     const expiresIn = this.config.get<number>(
       'PAYOS_PAYMENT_EXPIRES_MINUTES',
@@ -86,6 +89,7 @@ export class PaymentsService {
       amount,
       status: 'PENDING_PAYMENT',
       provider: 'PAYOS',
+      giftSnapshots,
     });
 
     try {
@@ -139,6 +143,7 @@ export class PaymentsService {
       return { success: true, orderCode: data.orderCode, granted: false };
     }
     if (order.status !== 'PAID') {
+      await this.gifts.consumePhysical(order.giftSnapshots ?? []);
       order.status = 'PAID';
       order.reference = data.reference;
       order.paymentLinkId = data.paymentLinkId;
@@ -161,10 +166,12 @@ export class PaymentsService {
   async demoPurchase(dto: CreatePaymentDto, user: AuthUser) {
     this.assertDevelopment();
     const books = await this.books.findMany(dto.bookIds);
-    if (books.some((book) => book.format !== 'EBOOK')) {
+    if (books.some((book) => !['EBOOK', 'BOTH'].includes(book.format))) {
       throw new BadRequestException('Luồng demo chỉ cấp quyền cho Ebook');
     }
     const orderCode = await this.nextOrderCode();
+    const giftSnapshots = await this.gifts.snapshotsForBooks(books);
+    await this.gifts.consumePhysical(giftSnapshots);
     const order = await this.orders.create({
       orderCode,
       userId: user.sub,
@@ -174,6 +181,7 @@ export class PaymentsService {
       provider: 'DEMO',
       reference: `LOCAL-${orderCode}`,
       paidAt: new Date(),
+      giftSnapshots,
     });
     await this.library.grant(user.sub, order.bookIds, 'DEMO', orderCode);
     return {
@@ -195,6 +203,20 @@ export class PaymentsService {
       amount: order.amount,
       bookIds: order.bookIds,
       paidAt: order.paidAt,
+    };
+  }
+
+  configurationStatus() {
+    const webhookUrl = this.config.get<string>('PAYOS_WEBHOOK_URL');
+    return {
+      enabled: Boolean(this.payOS),
+      webhookConfigured: Boolean(webhookUrl),
+      webhookUrl,
+      returnUrlConfigured: Boolean(this.config.get<string>('PAYOS_RETURN_URL')),
+      cancelUrlConfigured: Boolean(this.config.get<string>('PAYOS_CANCEL_URL')),
+      productionReady:
+        this.config.get<string>('NODE_ENV') === 'production' &&
+        Boolean(this.payOS && webhookUrl),
     };
   }
 
