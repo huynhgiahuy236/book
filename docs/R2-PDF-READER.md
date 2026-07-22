@@ -18,3 +18,14 @@ Seed `backend/scripts/seed-dac-nhan-tam.mjs` liên kết object này bằng `ebo
 Upload mới dùng key có phiên bản: `ebooks/<slug>/<slug>-<timestamp>.pdf`. File cũ chỉ bị xóa sau khi file mới đã upload và metadata MongoDB đã lưu thành công.
 
 Reader hỗ trợ HTTP Range qua backend. Bucket không cần và không nên bật public access.
+
+## Đồng bộ object đã có
+
+Trang `/admin` có khu vực **Kho PDF đọc trực tuyến**. Backend chỉ liệt kê object `.pdf` dưới prefix `ebooks/` và đối chiếu với `ebookFile.objectKey` trong MongoDB.
+
+- `LINKED`: đã liên kết đúng một sách.
+- `UNLINKED`: chưa liên kết.
+- `MISSING_FILE`: document sách còn key nhưng R2 không còn object.
+- `DUPLICATE`/`CONFLICT`: cần admin xử lý thủ công.
+
+Admin có thể liên kết với document hiện có hoặc tạo bản nháp `DRAFT`. Tạo bản nháp không tự suy đoán tác giả, giá, ảnh bìa hay nội dung từ PDF. Chỉ sách `ACTIVE` có `ebookFile.status = READY` mới xuất hiện trong khu vực đọc trực tuyến.

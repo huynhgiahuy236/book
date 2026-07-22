@@ -1,0 +1,116 @@
+.online-books-section {
+  width: var(--page);
+  margin: 0 auto 82px;
+  padding: 38px;
+  border: 1px solid var(--c-line);
+  border-radius: var(--radius-lg);
+  background: linear-gradient(135deg, #fff 0%, var(--c-warm) 100%);
+}
+.online-books-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 18px;
+}
+.online-book-card {
+  min-width: 0;
+  padding: 20px;
+  border: 1px solid var(--c-line);
+  border-radius: 24px;
+  background: #fff;
+  display: grid;
+  grid-template-columns: 138px 1fr;
+  gap: 24px;
+  align-items: center;
+  box-shadow: var(--shadow-soft);
+}
+.online-book-cover {
+  min-height: 190px;
+  padding: 18px;
+  background: var(--c-warm);
+  border-radius: 18px;
+  display: grid;
+  place-items: center;
+  position: relative;
+}
+.online-book-cover .book-cover {
+  width: 92px;
+  filter: drop-shadow(0 12px 10px rgba(40, 30, 22, 0.2));
+}
+.online-book-cover > span {
+  position: absolute;
+  left: 10px;
+  right: 10px;
+  bottom: 10px;
+  min-height: 28px;
+  padding: 4px 8px;
+  border-radius: 9px;
+  background: rgba(33, 28, 24, 0.9);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  font-size: 9px;
+  font-weight: 800;
+}
+.online-book-card h3 {
+  margin: 8px 0 2px;
+  font-family: var(--font-display);
+  font-size: 24px;
+  line-height: 1.15;
+}
+.online-book-card p {
+  margin: 0;
+  color: var(--c-ink-soft);
+  font-size: 13px;
+}
+.online-rating {
+  margin: 14px 0;
+  color: var(--c-gold);
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 12px;
+  font-weight: 800;
+}
+.online-book-card .button {
+  width: max-content;
+  max-width: 100%;
+}
+@media (max-width: 850px) {
+  .online-books-grid {
+    grid-template-columns: 1fr;
+  }
+}
+@media (max-width: 520px) {
+  .online-books-section {
+    padding: 22px 16px;
+    border-radius: 26px;
+  }
+  .online-book-card {
+    grid-template-columns: 92px 1fr;
+    padding: 14px;
+    gap: 15px;
+  }
+  .online-book-cover {
+    min-height: 155px;
+    padding: 12px;
+  }
+  .online-book-cover .book-cover {
+    width: 68px;
+  }
+  .online-book-cover > span {
+    font-size: 0;
+  }
+  .online-book-cover > span svg {
+    display: block;
+  }
+  .online-book-card h3 {
+    font-size: 19px;
+  }
+  .online-book-card .button {
+    min-height: 44px;
+    padding-inline: 14px;
+    font-size: 12px;
+  }
+}

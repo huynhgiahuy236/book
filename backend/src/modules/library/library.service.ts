@@ -190,6 +190,16 @@ export class LibraryService {
       100,
       Math.round((dto.currentPage / dto.totalPages) * 100),
     );
+    const previous = await this.progress
+      .findOne({ userId: user.sub, bookId: book.id })
+      .select('progressPercentage lastReadAt completedAt')
+      .lean();
+    const completionEligible = Boolean(
+      percentage === 100 &&
+      previous &&
+      previous.progressPercentage >= 95 &&
+      previous.lastReadAt.getTime() <= Date.now() - 10_000,
+    );
     return this.progress
       .findOneAndUpdate(
         { userId: user.sub, bookId: book.id },
@@ -201,7 +211,8 @@ export class LibraryService {
             totalPages: dto.totalPages,
             progressPercentage: percentage,
             lastReadAt: new Date(),
-            completedAt: percentage === 100 ? new Date() : null,
+            completedAt:
+              previous?.completedAt ?? (completionEligible ? new Date() : null),
           },
         },
         { upsert: true, new: true },

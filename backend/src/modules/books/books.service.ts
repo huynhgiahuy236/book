@@ -14,7 +14,7 @@ export class BooksService implements OnModuleInit {
         updateOne: {
           filter: { id: book.id },
           update: {
-            $set: {
+            $setOnInsert: {
               ...book,
               slug: book.slug ?? book.id,
               accessType:
@@ -33,14 +33,16 @@ export class BooksService implements OnModuleInit {
   }
 
   async findAll() {
-    return this.books
-      .find({ status: { $ne: 'ARCHIVED' } })
-      .sort({ createdAt: 1 })
-      .lean();
+    return this.books.find({ status: 'ACTIVE' }).sort({ createdAt: 1 }).lean();
   }
 
   async findAllPublic() {
-    return (await this.findAll()).map((book) => this.toPublic(book));
+    return (await this.findAll())
+      .map((book) => this.toPublic(book))
+      .sort(
+        (left, right) =>
+          Number(right.isReadableOnline) - Number(left.isReadableOnline),
+      );
   }
 
   async findOnePublic(id: string) {
@@ -74,8 +76,22 @@ export class BooksService implements OnModuleInit {
     );
   }
 
-  toPublic<T extends { ebookFile?: unknown }>(book: T) {
+  toPublic<
+    T extends {
+      ebookFile?: { status?: string } | null;
+      readingEnabled?: boolean;
+      status?: string;
+    },
+  >(book: T) {
     const { ebookFile, ...safe } = book;
-    return { ...safe, hasReadableContent: Boolean(ebookFile) };
+    const hasReadableContent = ebookFile?.status === 'READY';
+    return {
+      ...safe,
+      hasReadableContent,
+      isReadableOnline:
+        hasReadableContent &&
+        book.readingEnabled === true &&
+        book.status === 'ACTIVE',
+    };
   }
 }

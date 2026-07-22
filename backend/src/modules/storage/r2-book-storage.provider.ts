@@ -11,11 +11,16 @@ import {
   DeleteObjectCommand,
   GetObjectCommand,
   HeadObjectCommand,
+  ListObjectsV2Command,
   PutObjectCommand,
   S3Client,
 } from '@aws-sdk/client-s3';
 import { Readable } from 'node:stream';
-import type { BookStorage, StoredBookObject } from './book-storage.types';
+import type {
+  BookStorage,
+  BookStorageEntry,
+  StoredBookObject,
+} from './book-storage.types';
 
 @Injectable()
 export class R2BookStorageProvider implements BookStorage {
@@ -28,7 +33,9 @@ export class R2BookStorageProvider implements BookStorage {
     const endpoint = config
       .getOrThrow<string>('R2_ENDPOINT')
       .replace(/\/$/, '');
-    if (new URL(endpoint).hostname !== `${accountId}.r2.cloudflarestorage.com`) {
+    if (
+      new URL(endpoint).hostname !== `${accountId}.r2.cloudflarestorage.com`
+    ) {
       throw new Error('R2_ENDPOINT không khớp R2_ACCOUNT_ID');
     }
     this.client = new S3Client({
@@ -41,13 +48,48 @@ export class R2BookStorageProvider implements BookStorage {
     });
   }
 
+  async listPdfs(prefix = 'ebooks/'): Promise<BookStorageEntry[]> {
+    const safePrefix = this.safeKey(prefix);
+    const entries: BookStorageEntry[] = [];
+    let continuationToken: string | undefined;
+    try {
+      do {
+        const page = await this.client.send(
+          new ListObjectsV2Command({
+            Bucket: this.bucket,
+            Prefix: safePrefix,
+            ContinuationToken: continuationToken,
+          }),
+        );
+        for (const item of page.Contents ?? []) {
+          if (!item.Key?.toLowerCase().endsWith('.pdf')) continue;
+          entries.push({
+            objectKey: item.Key,
+            fileName: item.Key.split('/').at(-1) ?? item.Key,
+            size: item.Size ?? 0,
+            lastModified: item.LastModified ?? null,
+          });
+        }
+        continuationToken = page.IsTruncated
+          ? page.NextContinuationToken
+          : undefined;
+      } while (continuationToken);
+      return entries.sort((left, right) =>
+        left.objectKey.localeCompare(right.objectKey),
+      );
+    } catch (error) {
+      this.handleStorageError(error, 'Không thể đọc danh sách PDF từ R2');
+    }
+  }
+
   async inspect(objectKey: string) {
     const key = this.safeKey(objectKey);
     try {
       const result = await this.client.send(
         new HeadObjectCommand({ Bucket: this.bucket, Key: key }),
       );
-      if (!result.ContentLength) throw new NotFoundException('File Ebook không tồn tại');
+      if (!result.ContentLength)
+        throw new NotFoundException('File Ebook không tồn tại');
       return { size: result.ContentLength };
     } catch (error) {
       this.handleStorageError(error, 'Không thể kiểm tra file Ebook trên R2');

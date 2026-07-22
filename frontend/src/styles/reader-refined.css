@@ -1,0 +1,130 @@
+.pdf-reader {
+  grid-template-rows: 64px 3px 1fr 32px;
+}
+.pdf-toolbar {
+  height: 64px;
+  padding-inline: 14px;
+  grid-template-columns: minmax(210px, 1fr) auto minmax(250px, 1fr);
+  gap: 10px;
+}
+.pdf-toolbar button,
+.pdf-toolbar a {
+  min-width: 40px;
+  min-height: 40px;
+  border-radius: 12px;
+}
+.pdf-sidebar.open {
+  width: 244px;
+}
+.pdf-sidebar > header {
+  height: 58px;
+}
+.pdf-thumbnails {
+  height: calc(100% - 58px);
+  scrollbar-gutter: stable;
+}
+.pdf-stage {
+  padding: 22px clamp(14px, 3vw, 42px);
+  scrollbar-gutter: stable both-edges;
+}
+.pdf-canvas-shell {
+  max-width: 920px;
+  box-shadow: 0 20px 55px rgba(0, 0, 0, 0.38);
+}
+.pdf-watermarks span {
+  color: rgba(74, 62, 52, 0.15);
+  font-size: 11px;
+}
+.pdf-statusbar {
+  height: 32px;
+  padding-inline: 14px;
+}
+.pdf-page-control {
+  padding: 3px;
+}
+.pdf-page-control input {
+  height: 32px;
+}
+.pdf-tools {
+  overflow: hidden;
+}
+.pdf-tools > button,
+.pdf-tools > span {
+  flex: none;
+}
+@media (max-width: 1050px) {
+  .pdf-toolbar {
+    grid-template-columns: minmax(190px, 1fr) auto;
+  }
+  .pdf-tools {
+    justify-self: end;
+  }
+  .reader-save-state {
+    display: none !important;
+  }
+  .pdf-tools > button:nth-last-child(2) {
+    display: none;
+  }
+}
+@media (max-width: 900px) {
+  .pdf-reader {
+    grid-template-rows: 60px 3px 1fr 30px;
+  }
+  .pdf-toolbar {
+    height: 60px;
+  }
+  .pdf-title {
+    max-width: 180px;
+  }
+  .pdf-sidebar {
+    top: 63px;
+    bottom: 30px;
+    background: #202321f7;
+  }
+  .pdf-stage {
+    padding: 14px 10px 76px;
+  }
+  .pdf-page-control {
+    bottom: 42px;
+  }
+  .pdf-statusbar {
+    height: 30px;
+  }
+}
+@media (max-width: 560px) {
+  .pdf-toolbar {
+    grid-template-columns: 1fr auto;
+    padding-inline: 7px;
+  }
+  .pdf-toolbar-group:first-child {
+    gap: 2px;
+  }
+  .pdf-title {
+    max-width: 120px;
+  }
+  .pdf-title span {
+    display: none;
+  }
+  .pdf-tools button {
+    display: none;
+  }
+  .pdf-tools button:last-child {
+    display: inline-flex;
+  }
+  .pdf-sidebar.open {
+    width: min(290px, 88vw);
+  }
+  .pdf-page-control {
+    width: max-content;
+    max-width: calc(100vw - 20px);
+  }
+  .pdf-stage {
+    padding-inline: 4px;
+  }
+  .pdf-canvas-shell {
+    border-radius: 4px;
+  }
+  .pdf-statusbar strong {
+    font-size: 10px;
+  }
+}

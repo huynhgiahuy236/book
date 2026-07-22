@@ -47,6 +47,8 @@ export class Book {
       fileSize: Number,
       pageCount: Number,
       uploadedAt: Date,
+      availabilityCheckedAt: Date,
+      status: { type: String, enum: ['READY', 'MISSING', 'ERROR'] },
     },
     _id: false,
     default: null,
@@ -59,9 +61,18 @@ export class Book {
     fileSize?: number;
     pageCount?: number;
     uploadedAt?: Date;
+    availabilityCheckedAt?: Date;
+    status?: 'READY' | 'MISSING' | 'ERROR';
   } | null;
   @Prop({ default: 'DEMO_PRICE_NOT_RETAIL' }) pricingNote!: string;
   @Prop() importedAt!: string;
 }
 
 export const BookSchema = SchemaFactory.createForClass(Book);
+BookSchema.index(
+  { 'ebookFile.objectKey': 1 },
+  {
+    unique: true,
+    partialFilterExpression: { 'ebookFile.objectKey': { $type: 'string' } },
+  },
+);

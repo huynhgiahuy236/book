@@ -15,6 +15,7 @@ import { AdminGuard } from '../auth/guards/admin.guard';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { AdminService } from './admin.service';
 import { UpdateAdminBookDto } from './dto/update-admin-book.dto';
+import { CreatePdfDraftDto, LinkPdfDto } from './dto/pdf-library.dto';
 
 @Controller('admin')
 @UseGuards(JwtAuthGuard, AdminGuard)
@@ -35,6 +36,22 @@ export class AdminController {
   @Get('books/:id/pdf-status')
   pdfStatus(@Param('id') id: string) {
     return this.admin.pdfStatus(id);
+  }
+  @Get('pdf-library')
+  pdfLibrary() {
+    return this.admin.pdfLibrary();
+  }
+  @Post('pdf-library/:bookId/link')
+  linkPdf(@Param('bookId') bookId: string, @Body() dto: LinkPdfDto) {
+    return this.admin.linkPdf(bookId, dto);
+  }
+  @Post('pdf-library/drafts')
+  createPdfDraft(@Body() dto: CreatePdfDraftDto) {
+    return this.admin.createPdfDraft(dto);
+  }
+  @Delete('pdf-library/:bookId/link')
+  unlinkPdf(@Param('bookId') bookId: string) {
+    return this.admin.unlinkPdf(bookId);
   }
   @Delete('books/:id') archiveBook(@Param('id') id: string) {
     return this.admin.archiveBook(id);

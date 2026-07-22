@@ -10,7 +10,15 @@ export type StoredBookObject = {
   contentLength: number;
 };
 
+export type BookStorageEntry = {
+  objectKey: string;
+  fileName: string;
+  size: number;
+  lastModified: Date | null;
+};
+
 export interface BookStorage {
+  listPdfs(prefix?: string): Promise<BookStorageEntry[]>;
   inspect(objectKey: string): Promise<{ size: number }>;
   uploadPdf(
     objectKey: string,

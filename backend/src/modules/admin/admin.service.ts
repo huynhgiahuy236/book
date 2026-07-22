@@ -1,5 +1,6 @@
 import {
   BadRequestException,
+  ConflictException,
   Inject,
   Injectable,
   NotFoundException,
@@ -12,6 +13,7 @@ import { Book } from '../books/schemas/book.schema';
 import { Order } from '../payments/schemas/order.schema';
 import { UpdateAdminBookDto } from './dto/update-admin-book.dto';
 import { BOOK_STORAGE, type BookStorage } from '../storage/book-storage.types';
+import { CreatePdfDraftDto, LinkPdfDto } from './dto/pdf-library.dto';
 
 @Injectable()
 export class AdminService {
@@ -100,6 +102,208 @@ export class AdminService {
     };
   }
 
+  async pdfLibrary() {
+    const [objects, books] = await Promise.all([
+      this.storage.listPdfs('ebooks/'),
+      this.books
+        .find()
+        .select('id slug title coverUrl status readingEnabled ebookFile')
+        .lean(),
+    ]);
+    const objectKeys = new Set(objects.map((object) => object.objectKey));
+    const items = objects.map((object) => {
+      const linked = books.filter(
+        (book) => book.ebookFile?.objectKey === object.objectKey,
+      );
+      const normalizedName = this.slugify(
+        object.fileName.replace(/\.pdf$/i, ''),
+      );
+      const candidates = books.filter(
+        (book) =>
+          normalizedName === book.slug || normalizedName.includes(book.slug),
+      );
+      const state =
+        linked.length > 1
+          ? 'DUPLICATE'
+          : linked.length === 1
+            ? 'LINKED'
+            : candidates.length > 1
+              ? 'CONFLICT'
+              : 'UNLINKED';
+      return {
+        ...object,
+        state,
+        linkedBook: linked[0]
+          ? {
+              id: linked[0].id,
+              slug: linked[0].slug,
+              title: linked[0].title,
+              coverUrl: linked[0].coverUrl,
+            }
+          : null,
+        candidateBooks: candidates.slice(0, 5).map((book) => ({
+          id: book.id,
+          slug: book.slug,
+          title: book.title,
+          coverUrl: book.coverUrl,
+        })),
+      };
+    });
+    const missingFiles = books
+      .filter(
+        (book) =>
+          book.ebookFile?.objectKey &&
+          !objectKeys.has(book.ebookFile.objectKey),
+      )
+      .map((book) => ({
+        state: 'MISSING_FILE' as const,
+        book: { id: book.id, slug: book.slug, title: book.title },
+      }));
+    return {
+      summary: {
+        total: objects.length,
+        linked: items.filter((item) => item.state === 'LINKED').length,
+        unlinked: items.filter((item) => item.state === 'UNLINKED').length,
+        missing: missingFiles.length,
+        conflicts: items.filter((item) =>
+          ['CONFLICT', 'DUPLICATE'].includes(item.state),
+        ).length,
+      },
+      items,
+      missingFiles,
+      books: books.map((book) => ({
+        id: book.id,
+        slug: book.slug,
+        title: book.title,
+        coverUrl: book.coverUrl,
+        hasPdf: Boolean(book.ebookFile),
+      })),
+    };
+  }
+
+  async linkPdf(bookId: string, dto: LinkPdfDto) {
+    const object = await this.findPdfObject(dto.objectKey);
+    const book = await this.books.findOne({
+      $or: [{ id: bookId }, { slug: bookId }],
+    });
+    if (!book) throw new NotFoundException('Không tìm thấy sách');
+    const usedBy = await this.books.exists({
+      _id: { $ne: book._id },
+      'ebookFile.objectKey': object.objectKey,
+    });
+    if (usedBy)
+      throw new ConflictException('PDF này đã được liên kết với sách khác');
+    if (
+      book.ebookFile?.objectKey &&
+      book.ebookFile.objectKey !== object.objectKey &&
+      !dto.replaceExisting
+    ) {
+      throw new ConflictException(
+        'Sách đã có PDF; cần xác nhận thay thế liên kết',
+      );
+    }
+    await this.books.updateOne(
+      { _id: book._id },
+      {
+        $set: {
+          ebookFile: {
+            originalFileName: object.fileName,
+            objectKey: object.objectKey,
+            storageProvider: 'R2',
+            mimeType: 'application/pdf',
+            fileSize: object.size,
+            uploadedAt: object.lastModified ?? undefined,
+            availabilityCheckedAt: new Date(),
+            status: 'READY',
+          },
+          readingEnabled: true,
+        },
+      },
+    );
+    return { success: true, bookId: book.id, status: 'LINKED' };
+  }
+
+  async createPdfDraft(dto: CreatePdfDraftDto) {
+    const object = await this.findPdfObject(dto.objectKey);
+    if (await this.books.exists({ 'ebookFile.objectKey': object.objectKey })) {
+      throw new ConflictException('PDF này đã được liên kết');
+    }
+    const baseName = object.fileName.replace(/\.pdf$/i, '');
+    const slug = dto.slug ?? this.slugify(baseName);
+    if (!slug || (await this.books.exists({ $or: [{ id: slug }, { slug }] }))) {
+      throw new ConflictException('Slug sách đã tồn tại hoặc không hợp lệ');
+    }
+    const title = dto.title?.trim() || baseName.replace(/[-_]+/g, ' ').trim();
+    const now = new Date();
+    const book = await this.books.create({
+      id: slug,
+      slug,
+      externalId: `R2-DRAFT-${slug}`,
+      source: 'R2_ADMIN_DRAFT',
+      sourceUrl: '',
+      title,
+      subtitle: '',
+      authors: [],
+      publisher: '',
+      description: '',
+      language: 'vie',
+      categories: [],
+      coverUrl: '',
+      previewUrl: '',
+      format: 'EBOOK',
+      accessType: 'PURCHASE',
+      status: 'DRAFT',
+      readingEnabled: true,
+      premium: false,
+      price: 0,
+      ebookPrice: 0,
+      physicalPrice: 0,
+      stock: 0,
+      pricingNote: 'ADMIN_MUST_REVIEW',
+      importedAt: now.toISOString(),
+      ebookFile: {
+        originalFileName: object.fileName,
+        objectKey: object.objectKey,
+        storageProvider: 'R2',
+        mimeType: 'application/pdf',
+        fileSize: object.size,
+        uploadedAt: object.lastModified ?? undefined,
+        availabilityCheckedAt: new Date(),
+        status: 'READY',
+      },
+    });
+    return { success: true, bookId: book.id, slug: book.slug, status: 'DRAFT' };
+  }
+
+  async unlinkPdf(bookId: string) {
+    const book = await this.books.findOneAndUpdate(
+      { $or: [{ id: bookId }, { slug: bookId }] },
+      { $set: { ebookFile: null, readingEnabled: false } },
+      { new: true },
+    );
+    if (!book) throw new NotFoundException('Không tìm thấy sách');
+    return { success: true, bookId: book.id, status: 'UNLINKED' };
+  }
+
+  private async findPdfObject(objectKey: string) {
+    const object = (await this.storage.listPdfs('ebooks/')).find(
+      (item) => item.objectKey === objectKey,
+    );
+    if (!object) throw new NotFoundException('Không tìm thấy PDF trong R2');
+    return object;
+  }
+
+  private slugify(value: string) {
+    return value
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .replace(/đ/g, 'd')
+      .replace(/Đ/g, 'd')
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-+|-+$/g, '');
+  }
+
   async uploadPdf(
     id: string,
     file?: {
@@ -145,6 +349,8 @@ export class AdminService {
       mimeType: 'application/pdf',
       fileSize: uploaded.size,
       uploadedAt: uploaded.uploadedAt,
+      availabilityCheckedAt: uploaded.uploadedAt,
+      status: 'READY',
     };
     book.readingEnabled = true;
     try {
@@ -181,6 +387,8 @@ export class AdminService {
             fileSize: ebookFile.fileSize,
             pageCount: ebookFile.pageCount,
             uploadedAt: ebookFile.uploadedAt,
+            availabilityCheckedAt: ebookFile.availabilityCheckedAt,
+            status: ebookFile.status,
           }
         : null,
     };
