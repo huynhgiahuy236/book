@@ -22,6 +22,7 @@ import { AuthSession } from './schemas/auth-session.schema';
 import { PasswordResetOtp } from './schemas/password-reset-otp.schema';
 import { User } from './schemas/user.schema';
 import type { AuthUser } from './types/auth-user.type';
+import { tokenDurationMs } from './token-duration';
 
 type TokenPair = {
   accessToken: string;
@@ -148,6 +149,8 @@ export class AuthService {
           expiresAt: new Date(Date.now() + 10 * 60_000),
           attempts: 0,
           consumedAt: null,
+          resetJti: null,
+          resetUsedAt: null,
         },
       },
       { upsert: true, new: true },
@@ -175,11 +178,18 @@ export class AuthService {
       );
       throw new BadRequestException('OTP không hợp lệ hoặc đã hết hạn');
     }
+    const resetJti = randomUUID();
     record.consumedAt = new Date();
+    record.resetJti = resetJti;
     await record.save();
     return {
       resetToken: await this.jwt.signAsync(
-        { sub: email, type: 'password-reset' },
+        {
+          sub: email,
+          otpId: String(record._id),
+          jti: resetJti,
+          type: 'password-reset',
+        },
         {
           secret: this.config.getOrThrow<string>('JWT_ACCESS_SECRET'),
           expiresIn: '10m',
@@ -192,12 +202,38 @@ export class AuthService {
     if (dto.password !== dto.confirmPassword)
       throw new BadRequestException('Mật khẩu xác nhận không khớp');
     const payload = await this.jwt
-      .verifyAsync<{ sub: string; type: string }>(dto.resetToken, {
+      .verifyAsync<{
+        sub: string;
+        otpId: string;
+        jti: string;
+        type: string;
+      }>(dto.resetToken, {
         secret: this.config.getOrThrow<string>('JWT_ACCESS_SECRET'),
       })
       .catch(() => null);
-    if (!payload || payload.type !== 'password-reset')
+    if (
+      !payload ||
+      payload.type !== 'password-reset' ||
+      !payload.otpId ||
+      !payload.jti
+    )
       throw new BadRequestException('Phiên đặt lại mật khẩu không hợp lệ');
+    const resetRecord = await this.resetOtps.findOneAndUpdate(
+      {
+        _id: payload.otpId,
+        email: payload.sub,
+        resetJti: payload.jti,
+        consumedAt: { $ne: null },
+        resetUsedAt: null,
+        expiresAt: { $gt: new Date() },
+      },
+      { $set: { resetUsedAt: new Date() } },
+      { new: true },
+    );
+    if (!resetRecord)
+      throw new BadRequestException(
+        'Phiên đặt lại mật khẩu đã được sử dụng hoặc hết hạn',
+      );
     const user = await this.users.findOneAndUpdate(
       { email: payload.sub },
       {
@@ -312,11 +348,17 @@ export class AuthService {
         ) as never,
       },
     );
+    const refreshExpiresIn = this.config.get<string>(
+      'JWT_REFRESH_EXPIRES_IN',
+      '30d',
+    );
     await this.sessions.create({
       userId: id,
       jti,
       tokenHash: await hash(refreshToken, 10),
-      expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60_000),
+      expiresAt: new Date(
+        Date.now() + tokenDurationMs(refreshExpiresIn, '30d'),
+      ),
     });
     return { accessToken, refreshToken, user: { id, email, name, role } };
   }

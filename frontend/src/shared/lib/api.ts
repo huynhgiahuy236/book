@@ -24,7 +24,7 @@ export function clearToken() {
 
 async function request<T>(path: string, init: RequestInit, authenticated: boolean, retry: boolean): Promise<T> {
   const headers = new Headers(init.headers);
-  if (init.body) headers.set("Content-Type", "application/json");
+  if (init.body && !(init.body instanceof FormData)) headers.set("Content-Type", "application/json");
   if (authenticated) {
     const token = getToken();
     if (!token && retry) {

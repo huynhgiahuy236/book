@@ -23,8 +23,8 @@ try {
         status: 'ACTIVE', readingEnabled: true, premium: false, price: 69000,
         ebookPrice: 69000, physicalPrice: 0, stock: 0, pricingNote: 'DEMO_PRICE_NOT_RETAIL',
         ebookFile: {
-          originalFileName: 'dac-nhan-tam.pdf', objectKey: 'dac-nhan-tam.pdf',
-          storageProvider: 'LOCAL', mimeType: 'application/pdf', fileSize: 2589665,
+          originalFileName: 'Dac Nhan Tam.pdf', objectKey: 'ebooks/Dac Nhan Tam.pdf',
+          storageProvider: 'R2', mimeType: 'application/pdf',
         },
         importedAt: now.toISOString(), updatedAt: now,
       },

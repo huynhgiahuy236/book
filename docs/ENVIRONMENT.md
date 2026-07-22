@@ -11,7 +11,13 @@ Không đưa `.env`, access token, OTP, PDF bản quyền hoặc khóa PayOS lê
 | `JWT_REFRESH_SECRET` | Bí mật tự tạo | Chuỗi ngẫu nhiên khác access secret | Ký refresh token; token được lưu dạng hash trong `authsessions`. |
 | `CLIENT_URL` | Cấu hình | Mặc định `http://localhost:3000` | CORS và redirect OAuth. |
 | `NEXT_PUBLIC_API_URL` | Công khai | `http://localhost:4000/api/v1` | Frontend gọi NestJS. Chỉ đặt trong `frontend/.env.local`. |
-| `BOOK_STORAGE_ROOT` | Cấu hình | Mặc định `storage/private/ebooks` tính từ thư mục chạy backend | Gốc lưu PDF private. |
+| `BOOK_STORAGE_DRIVER` | Cấu hình | `r2` | Chọn Cloudflare R2 làm storage PDF private. |
+| `R2_ACCOUNT_ID` | Bí mật backend | Không | Account ID Cloudflare. |
+| `R2_ACCESS_KEY_ID` | Bí mật backend | Không | Access key của R2 API token. |
+| `R2_SECRET_ACCESS_KEY` | Bí mật backend | Không | Secret của R2 API token. |
+| `R2_BUCKET_NAME` | Cấu hình backend | Không | Bucket private chứa PDF. |
+| `R2_ENDPOINT` | Cấu hình backend | Không | Endpoint account, không kèm bucket name. |
+| `R2_REGION` | Cấu hình backend | `auto` | Region tương thích S3 của R2. |
 
 Tạo JWT secret bằng trình tạo mật mã của hệ điều hành hoặc password manager. Hai secret phải khác nhau; không dùng ví dụ trong tài liệu cho môi trường thật.
 

@@ -7,6 +7,8 @@ export class PasswordResetOtp {
   @Prop({ required: true, expires: 0 }) expiresAt!: Date;
   @Prop({ default: 0 }) attempts!: number;
   @Prop({ type: Date, default: null }) consumedAt!: Date | null;
+  @Prop({ type: String, default: null, select: false }) resetJti!: string | null;
+  @Prop({ type: Date, default: null }) resetUsedAt!: Date | null;
 }
 
 export const PasswordResetOtpSchema =

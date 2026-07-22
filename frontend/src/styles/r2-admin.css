@@ -1,0 +1,36 @@
+.admin-row:not(.admin-row-head) .admin-pdf {
+  grid-column: 1 / -1;
+  margin: 2px 0 8px;
+  padding: 13px 15px;
+  border-radius: 15px;
+  background: var(--c-warm);
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 12px;
+}
+.pdf-badge { display: inline-flex; align-items: center; gap: 6px; font-weight: 800; }
+.pdf-badge.ready { color: var(--c-sage); }
+.pdf-badge.missing { color: var(--c-accent-dark); }
+.admin-pdf > small { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.admin-pdf > div { display: flex; gap: 8px; }
+.admin-upload, .admin-pdf a {
+  min-height: 38px;
+  padding: 0 12px;
+  border: 1px solid var(--c-line);
+  border-radius: 11px;
+  background: #fff;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 800;
+  cursor: pointer;
+}
+.admin-upload input { position: absolute; width: 1px; height: 1px; opacity: 0; }
+.admin-alert { width: var(--page); margin: 0 auto 16px; padding: 12px 16px; border-radius: 14px; font-size: 13px; font-weight: 700; }
+.admin-alert.success { background: #e8efe9; color: var(--c-sage); }
+.admin-alert.error { background: #fff0eb; color: var(--c-accent-dark); }
+@media (max-width: 700px) {
+  .admin-row:not(.admin-row-head) .admin-pdf { grid-template-columns: 1fr; }
+  .admin-pdf > div { flex-wrap: wrap; }
+}

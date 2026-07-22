@@ -6,10 +6,12 @@ import { Book, BookSchema } from '../books/schemas/book.schema';
 import { Order, OrderSchema } from '../payments/schemas/order.schema';
 import { AdminController } from './admin.controller';
 import { AdminService } from './admin.service';
+import { StorageModule } from '../storage/storage.module';
 
 @Module({
   imports: [
     AuthModule,
+    StorageModule,
     MongooseModule.forFeature([
       { name: User.name, schema: UserSchema },
       { name: Book.name, schema: BookSchema },

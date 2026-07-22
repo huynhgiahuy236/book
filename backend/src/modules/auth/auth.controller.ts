@@ -22,6 +22,7 @@ import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import { AuthService } from './auth.service';
 import type { AuthUser } from './types/auth-user.type';
 import { RateLimitService } from './rate-limit.service';
+import { tokenDurationMs } from './token-duration';
 
 @Controller('auth')
 export class AuthController {
@@ -131,7 +132,10 @@ export class AuthController {
       secure: this.config.get<string>('NODE_ENV') === 'production',
       sameSite: 'lax',
       path: '/api/v1/auth',
-      maxAge: 30 * 24 * 60 * 60_000,
+      maxAge: tokenDurationMs(
+        this.config.get<string>('JWT_REFRESH_EXPIRES_IN', '30d'),
+        '30d',
+      ),
     });
   }
 

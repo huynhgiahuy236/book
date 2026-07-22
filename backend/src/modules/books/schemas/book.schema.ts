@@ -42,10 +42,11 @@ export class Book {
     type: {
       originalFileName: String,
       objectKey: String,
-      storageProvider: { type: String, enum: ['LOCAL', 'S3'] },
+      storageProvider: { type: String, enum: ['R2'] },
       mimeType: String,
       fileSize: Number,
       pageCount: Number,
+      uploadedAt: Date,
     },
     _id: false,
     default: null,
@@ -53,10 +54,11 @@ export class Book {
   ebookFile!: {
     originalFileName: string;
     objectKey: string;
-    storageProvider: 'LOCAL' | 'S3';
+    storageProvider: 'R2';
     mimeType: string;
     fileSize?: number;
     pageCount?: number;
+    uploadedAt?: Date;
   } | null;
   @Prop({ default: 'DEMO_PRICE_NOT_RETAIL' }) pricingNote!: string;
   @Prop() importedAt!: string;
